@@ -63,7 +63,7 @@ export default function AssistantPage() {
       </div>
 
       {/* Messages area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 pb-20">
         {messages.length === 0 ? (
           /* Empty state with suggested prompts */
           <div className="flex flex-col items-center justify-center h-full">
@@ -105,8 +105,8 @@ export default function AssistantPage() {
         )}
       </div>
 
-      {/* Input bar — above bottom nav */}
-      <div className="border-t border-fence bg-linen px-3 py-2 pb-20">
+      {/* Input bar — fixed above bottom nav */}
+      <div className="fixed bottom-16 left-0 right-0 border-t border-fence bg-linen px-3 py-2 z-50">
         <div className="flex items-center gap-2">
           <input
             value={input}
