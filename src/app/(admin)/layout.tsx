@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Map, Box, CheckSquare, BookOpen, MoreHorizontal, Wifi, WifiOff, CloudSnow, Sparkles } from "lucide-react";
+import ScriptureOfDay from "@/components/admin/ScriptureOfDay";
 import Link from "next/link";
 import { waitForPendingWrites } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -82,6 +83,9 @@ export default function AdminLayout({
     <div className="flex flex-col min-h-screen bg-cream">
       <SyncIndicator />
       
+      {/* Scripture of the Day */}
+      <ScriptureOfDay />
+
       {/* Main Content Area */}
       <main className="flex-1 pb-16 relative">
         {children}

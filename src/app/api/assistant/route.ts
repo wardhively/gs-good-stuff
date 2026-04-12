@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import * as admin from "firebase-admin";
 import { buildFarmContext } from "@/lib/assistant-context";
 import { BORDEN_TOOLS, executeTool } from "@/lib/assistant-tools";
+import { USER_GUIDE } from "@/lib/user-guide";
 
 const Timestamp = admin.firestore.Timestamp;
 
@@ -34,7 +35,12 @@ Important rules:
 - If something needs doing, offer to create a task or checklist item.
 - If weather data shows frost risk during growing season (May 15 - Oct 1), flag it urgently.
 - If equipment is overdue for service, mention it proactively.
-- When taking actions, briefly confirm what you did.`;
+- When taking actions, briefly confirm what you did.
+
+When Gary asks about the scripture of the day or asks for spiritual encouragement, reference the daily verse and connect it to the farm's mission and daily work. Speak from a place of faith and practical wisdom.
+
+USER GUIDE (use this to answer "how do I" questions):
+${USER_GUIDE}`;
 
 export async function POST(request: Request) {
   try {
