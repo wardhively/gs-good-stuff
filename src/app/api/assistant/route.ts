@@ -6,7 +6,6 @@ import { BORDEN_TOOLS, executeTool } from "@/lib/assistant-tools";
 
 const Timestamp = admin.firestore.Timestamp;
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = "claude-sonnet-4-20250514";
 
 const SYSTEM_PROMPT = `You are Borden, the AI farm advisor for G&S Good Stuff — a dahlia tuber operation in Addison, NY (USDA Zone 5b, 42.04°N, 77.33°W, ~1020ft elevation).
@@ -45,6 +44,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Message required" }, { status: 400 });
     }
 
+    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) {
       return NextResponse.json({
         response: "I'm not fully connected yet — the Anthropic API key hasn't been set. Ask Ward to run `firebase functions:secrets:set ANTHROPIC_API_KEY` or add it to `.env.local` as `ANTHROPIC_API_KEY`.",
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     messages.push({ role: "user", content: message });
 
     // Call Claude API
-    let response = await callClaude(messages);
+    let response = await callClaude(messages, ANTHROPIC_API_KEY);
     const actions: Array<{ tool: string; input: any; result: string }> = [];
 
     // Handle tool use — loop until Claude gives a text response
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       messages.push({ role: "assistant", content: response.content });
       messages.push({ role: "user", content: toolResults });
 
-      response = await callClaude(messages);
+      response = await callClaude(messages, ANTHROPIC_API_KEY);
     }
 
     // Extract text response
@@ -156,12 +156,12 @@ export async function POST(request: Request) {
   }
 }
 
-async function callClaude(messages: any[]) {
+async function callClaude(messages: any[], apiKey: string) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY!,
+      "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
