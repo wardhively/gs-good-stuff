@@ -124,15 +124,18 @@ export default function OrdersView() {
                            <div>
                               <h4 className="text-[10px] uppercase font-bold text-stone-c tracking-widest flex items-center gap-1 mb-2"><User className="w-3 h-3"/> Customer</h4>
                               <p className="font-bold text-root">{order.customer_name}</p>
-                              <p className="text-sm text-stone-c">{order.customer_email}</p>
+                              {order.customer_email && <p className="text-sm text-stone-c">{order.customer_email}</p>}
+                              {order.source && <p className="text-[10px] uppercase font-bold text-creek mt-1">{order.source}</p>}
                            </div>
-                           
+
+                           {order.shipping_address && (
                            <div>
                               <h4 className="text-[10px] uppercase font-bold text-stone-c tracking-widest flex items-center gap-1 mb-2"><Package className="w-3 h-3"/> Shipping Address</h4>
                               <p className="font-bold text-root">{order.shipping_address.line1}</p>
                               {order.shipping_address.line2 && <p className="font-bold text-root">{order.shipping_address.line2}</p>}
                               <p className="font-bold text-root">{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</p>
                            </div>
+                           )}
 
                            {order.tracking_number && (
                               <div className="bg-white p-3 rounded-lg border border-fence inline-block">
@@ -235,7 +238,7 @@ export default function OrdersView() {
                      </div>
                      <div className="text-right">
                         <h2 className="text-2xl font-bold uppercase tracking-widest mb-1">Packing Slip</h2>
-                        <p className="text-sm">Order ID: {order.stripe_session_id.substring(8, 16)}</p>
+                        <p className="text-sm">Order ID: {order.stripe_session_id?.substring(8, 16) || order.id?.substring(0, 8) || 'N/A'}</p>
                         <p className="text-sm">Date: {order.created_at ? new Date(order.created_at.seconds * 1000).toLocaleDateString() : 'N/A'}</p>
                      </div>
                   </div>
@@ -244,10 +247,14 @@ export default function OrdersView() {
                   <div className="mb-12">
                      <h3 className="text-sm font-bold uppercase tracking-widest mb-2 border-b border-gray-300 pb-1 inline-block">Ship To:</h3>
                      <p className="text-xl font-bold mt-2">{order.customer_name}</p>
-                     <p className="text-lg">{order.shipping_address.line1}</p>
-                     {order.shipping_address.line2 && <p className="text-lg">{order.shipping_address.line2}</p>}
-                     <p className="text-lg">{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</p>
-                     <p className="text-md mt-2 text-gray-600">{order.customer_email}</p>
+                     {order.shipping_address && (
+                       <>
+                         <p className="text-lg">{order.shipping_address.line1}</p>
+                         {order.shipping_address.line2 && <p className="text-lg">{order.shipping_address.line2}</p>}
+                         <p className="text-lg">{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</p>
+                       </>
+                     )}
+                     {order.customer_email && <p className="text-md mt-2 text-gray-600">{order.customer_email}</p>}
                   </div>
 
                   {/* Items Table */}
