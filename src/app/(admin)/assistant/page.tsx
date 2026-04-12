@@ -39,7 +39,7 @@ export default function AssistantPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-cream">
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-cream pb-0 -mb-16">
       {/* Header */}
       <div className="bg-cream/95 backdrop-blur border-b border-fence px-4 py-3 flex items-center justify-between z-10">
         <div className="flex items-center gap-2">
@@ -105,8 +105,8 @@ export default function AssistantPage() {
         )}
       </div>
 
-      {/* Input bar */}
-      <div className="border-t border-fence bg-linen px-3 py-2 safe-area-pb">
+      {/* Input bar — above bottom nav */}
+      <div className="border-t border-fence bg-linen px-3 py-2 pb-20">
         <div className="flex items-center gap-2">
           <input
             value={input}

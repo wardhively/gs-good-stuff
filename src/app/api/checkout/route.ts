@@ -3,9 +3,11 @@ import Stripe from "stripe";
 import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key_for_build', {
-    apiVersion: "2024-04-10" as any,
-  });
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
+  }
+  const stripe = new Stripe(key, { apiVersion: "2024-04-10" as any });
   try {
     const body = await req.json();
     const { items, shipping } = body;
