@@ -28,13 +28,13 @@ export async function POST(req: Request) {
       quantity: item.quantity,
     }));
 
-    // Construct Shipping Cost dynamically scaling logic
+    // Construct Shipping Cost dynamically
     const shippingOptions = shipping === 0 ? [] : [
       {
          shipping_rate_data: {
             type: 'fixed_amount',
             fixed_amount: { amount: Math.round(shipping * 100), currency: 'usd' },
-            display_name: 'Flat Rate Tuber Shipping',
+            display_name: 'Flat Rate Shipping',
          }
       }
     ];
@@ -43,6 +43,7 @@ export async function POST(req: Request) {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
+      automatic_tax: { enabled: true },
       shipping_options: shippingOptions as any,
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cart?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cart?canceled=true`,
