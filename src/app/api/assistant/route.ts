@@ -3,11 +3,12 @@ import { adminDb } from "@/lib/firebase-admin";
 import * as admin from "firebase-admin";
 import { buildFarmContext } from "@/lib/assistant-context";
 import { BORDEN_TOOLS, executeTool } from "@/lib/assistant-tools";
-import { USER_GUIDE } from "@/lib/user-guide";
+// USER_GUIDE removed from system prompt — too large. Borden has condensed knowledge inline.
 
 const Timestamp = admin.firestore.Timestamp;
 
 const MODEL = "claude-sonnet-4-20250514";
+const FALLBACK_MODEL = "claude-3-5-sonnet-20241022";
 
 const SYSTEM_PROMPT = `You are Borden, the AI farm advisor for G&S Good Stuff — a dahlia tuber operation in Addison, NY (USDA Zone 5b, 42.04°N, 77.33°W, ~1020ft elevation).
 
@@ -39,8 +40,7 @@ Important rules:
 
 When Gary asks about the scripture of the day or asks for spiritual encouragement, reference the daily verse and connect it to the farm's mission and daily work. Speak from a place of faith and practical wisdom.
 
-USER GUIDE (use this to answer "how do I" questions):
-${USER_GUIDE}`;
+You know how every feature of the app works. If Gary asks "how do I..." questions, explain step by step: Map (draw zones, site features, grid, dimensions), Inventory (lifecycle, sell, split, photos), Tasks (create, complete, snooze, checklists), Journal (entries, photos, public toggle), Equipment (service intervals, hours, maintenance log), Calendar (day/week/month/quarter views), Orders (fulfill, track), Settings (frost dates, shipping, notifications).`;
 
 export async function POST(request: Request) {
   try {
@@ -181,7 +181,16 @@ async function callClaude(messages: any[], apiKey: string) {
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Claude API error ${res.status}: ${errText}`);
+    // If model not found, retry with fallback
+    if (res.status === 404 || errText.includes('model')) {
+      const retry = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: FALLBACK_MODEL, max_tokens: 1500, system: SYSTEM_PROMPT, tools: BORDEN_TOOLS, messages }),
+      });
+      if (retry.ok) return retry.json();
+    }
+    throw new Error(`Claude API error ${res.status}: ${errText.substring(0, 200)}`);
   }
 
   return res.json();
