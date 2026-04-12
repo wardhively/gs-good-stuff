@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Leaf, Sun, MapPin, Flower2, Snowflake, Heart } from "lucide-react";
+import { ArrowRight, Leaf, Sun, MapPin, Flower2, Snowflake, Heart, Scissors, Church, Gift, Sprout, Users } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -123,6 +123,46 @@ export default function StorefrontHome() {
           </div>
         </section>
       )}
+
+      {/* Who Grows With Us */}
+      <section className="py-20 px-6 bg-cream">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14 reveal">
+            <span className="text-xs font-bold uppercase tracking-widest text-creek font-dm-sans">Who Grows With Us</span>
+            <h2 className="font-bitter text-4xl font-bold text-root mt-2">Perfect For Every Occasion</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { icon: Flower2, title: "Wedding & Event Florists", desc: "Dinner-plate blooms in every color for your biggest day. We grow the show-stopping varieties that elevate bouquets, centerpieces, and arches. Bulk pricing available.", cta: "Plan Your Wedding Blooms" },
+              { icon: Sprout, title: "Home Gardeners", desc: "Whether you're planting your first dahlia or your hundredth, our Zone 5b-hardened tubers arrive ready to thrive. We include growing tips with every order.", cta: "Start Your Garden" },
+              { icon: Gift, title: "Gift Givers", desc: "Mother's Day, Easter, birthdays, housewarmings — a dahlia tuber is a gift that blooms all summer long. Beautifully packed and shipped with a care card.", cta: "Send a Living Gift" },
+            ].map((item, i) => (
+              <div key={i} className={`reveal reveal-delay-${i + 1} bg-linen rounded-2xl p-8 border border-fence-lt card-hover text-center`}>
+                <div className="w-12 h-12 rounded-full bg-petal/10 flex items-center justify-center mx-auto mb-4"><item.icon className="w-6 h-6 text-petal" /></div>
+                <h3 className="font-bitter text-xl font-bold text-root mb-3">{item.title}</h3>
+                <p className="text-sm text-stone-c font-dm-sans leading-relaxed mb-6">{item.desc}</p>
+                <Link href="/shop" className="text-petal font-bold text-sm hover:text-soil transition-colors inline-flex items-center gap-1">
+                  {item.cta} <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+            {[
+              { icon: Scissors, title: "Cut Flower Farmers", desc: "High-yield varieties bred for vase life and stem length. We track division yields so you know exactly what to expect. Wholesale pricing for orders of 50+." },
+              { icon: Users, title: "Churches & Garden Clubs", desc: "Group orders for communal gardens, Easter displays, and fundraiser plant sales. We'll work with your timeline and budget." },
+            ].map((item, i) => (
+              <div key={i} className={`reveal reveal-delay-${i + 1} bg-linen rounded-2xl p-8 border border-fence-lt card-hover flex gap-6 items-start`}>
+                <div className="w-10 h-10 rounded-full bg-creek/10 flex items-center justify-center flex-shrink-0"><item.icon className="w-5 h-5 text-creek" /></div>
+                <div>
+                  <h3 className="font-bitter text-lg font-bold text-root mb-2">{item.title}</h3>
+                  <p className="text-sm text-stone-c font-dm-sans leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Story Section */}
       <section className="bg-soil/5 py-20 px-6">
