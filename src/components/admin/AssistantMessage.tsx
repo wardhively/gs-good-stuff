@@ -36,12 +36,20 @@ export default function AssistantMessageBubble({ message }: { message: ChatMessa
         {/* Action badges */}
         {message.actions && message.actions.length > 0 && (
           <div className="mt-2 space-y-1">
-            {message.actions.map((action, i) => (
-              <div key={i} className="flex items-center gap-2 bg-leaf-lt px-3 py-1.5 rounded-lg text-xs">
-                <Check className="w-3 h-3 text-leaf flex-shrink-0" />
-                <span className="text-leaf-dk font-bold">{action.result}</span>
-              </div>
-            ))}
+            {message.actions.map((action, i) => {
+              // Truncate long results (like weather data dumps)
+              const result = action.result.length > 100
+                ? action.result.substring(0, 100) + '...'
+                : action.result;
+              // Skip showing raw data fetches as badges
+              if (action.tool === 'get_weather_forecast') return null;
+              return (
+                <div key={i} className="flex items-start gap-2 bg-leaf-lt px-3 py-1.5 rounded-lg text-xs">
+                  <Check className="w-3 h-3 text-leaf flex-shrink-0 mt-0.5" />
+                  <span className="text-leaf-dk font-bold">{result}</span>
+                </div>
+              );
+            })}
           </div>
         )}
 
