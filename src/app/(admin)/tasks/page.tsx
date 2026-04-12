@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { useZones } from "@/hooks/useZones";
 import { useInventory } from "@/hooks/useInventory";
-import { Plus, Check, MapPin, Wrench, Clock, BellRing, Sparkles, X, ListChecks } from "lucide-react";
+import { Plus, Check, MapPin, Wrench, Clock, BellRing, Sparkles, X, ListChecks, Calendar, Pencil } from "lucide-react";
 import { PRIORITY_COLORS } from "@/lib/constants";
 import TaskCreationModal from "@/components/admin/TaskCreationModal";
 import type { Task, ChecklistItem } from "@/lib/types";
 import { Timestamp } from "firebase/firestore";
-import { isToday, isTomorrow, isThisWeek, addDays } from "date-fns";
+import { isToday, isTomorrow, isThisWeek, addDays, format } from "date-fns";
 
 interface ChecklistTaskItem {
   id: string;
@@ -21,7 +21,7 @@ interface ChecklistTaskItem {
 }
 
 export default function TasksPage() {
-  const { tasks, loading, saveTask, createTask } = useTasks();
+  const { tasks, loading, saveTask, createTask, deleteTask } = useTasks();
   const { zones } = useZones();
   const { varieties } = useInventory();
 
@@ -30,6 +30,10 @@ export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [isCreating, setIsCreating] = useState(false);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  const [editingDueDate, setEditingDueDate] = useState<string | null>(null);
+  const [dueDateInput, setDueDateInput] = useState("");
+  const [editingTitle, setEditingTitle] = useState<string | null>(null);
+  const [titleInput, setTitleInput] = useState("");
   const [viewMode, setViewMode] = useState<'tasks' | 'checklists'>('tasks');
 
   // Gather all incomplete checklist items from zones and varieties
@@ -200,26 +204,120 @@ export default function TasksPage() {
                        {task.source === 'weather' && <BellRing className="w-4 h-4 text-frost" />}
                     </div>
 
-                    <h3 className="font-bold text-root text-lg leading-tight mb-2">{task.title}</h3>
-                    
+                    {/* Title — editable on tap */}
+                    {editingTitle === task.id ? (
+                      <input
+                        value={titleInput}
+                        onChange={e => setTitleInput(e.target.value)}
+                        onBlur={async () => { if (titleInput.trim()) await saveTask(task.id, { title: titleInput.trim() }); setEditingTitle(null); }}
+                        onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                        autoFocus
+                        onClick={e => e.stopPropagation()}
+                        className="font-bold text-root text-lg w-full px-2 py-1 mb-2 rounded border border-petal bg-petal-lt focus:outline-none"
+                      />
+                    ) : (
+                      <h3 className={`font-bold text-lg leading-tight mb-1 ${task.status === 'completed' ? 'line-through text-ash' : 'text-root'}`}>{task.title}</h3>
+                    )}
+
+                    {/* Due date display */}
+                    {task.due_date && !isExpanded && (
+                      <p className="text-[11px] text-stone-c mb-2 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {format(new Date(task.due_date.seconds * 1000), 'MMM d, yyyy')}
+                        {task.assigned_to && <span className="ml-2">· {task.assigned_to}</span>}
+                      </p>
+                    )}
+
                     {isExpanded && (
                       <div className="animate-in fade-in slide-in-from-top-2">
                         <p className="text-sm text-stone-c font-dm-sans mb-3">{task.description}</p>
-                        
+
+                        {/* Due date editor */}
+                        <div className="mb-3 flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-stone-c" />
+                          {editingDueDate === task.id ? (
+                            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                              <input
+                                type="date"
+                                value={dueDateInput}
+                                onChange={e => setDueDateInput(e.target.value)}
+                                className="px-2 py-1 text-xs rounded border border-fence bg-cream text-root focus:outline-none focus:ring-2 focus:ring-petal"
+                              />
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (dueDateInput) await saveTask(task.id, { due_date: Timestamp.fromDate(new Date(dueDateInput)) });
+                                  setEditingDueDate(null);
+                                }}
+                                className="text-xs font-bold text-leaf"
+                              >Save</button>
+                              {task.due_date && (
+                                <button
+                                  onClick={async (e) => { e.stopPropagation(); setEditingDueDate(null); }}
+                                  className="text-xs font-bold text-ash"
+                                >Cancel</button>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingDueDate(task.id);
+                                setDueDateInput(task.due_date ? format(new Date(task.due_date.seconds * 1000), 'yyyy-MM-dd') : '');
+                              }}
+                              className="text-xs font-bold text-creek hover:text-creek-dk transition-colors"
+                            >
+                              {task.due_date ? format(new Date(task.due_date.seconds * 1000), 'MMM d, yyyy') : 'Set due date'}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Assigned to + metadata */}
                         <div className="flex flex-wrap gap-2 mb-4">
                           {zoneName && <span className="bg-white border border-fence-lt text-xs text-stone-c px-2 py-1 rounded-md flex items-center gap-1 font-bold"><MapPin className="w-3 h-3"/> {zoneName}</span>}
                           {task.equipment_id && <span className="bg-white border border-fence-lt text-xs text-stone-c px-2 py-1 rounded-md flex items-center gap-1 font-bold"><Wrench className="w-3 h-3"/> Linked Equipment</span>}
+                          {task.assigned_to && <span className="bg-white border border-fence-lt text-xs text-stone-c px-2 py-1 rounded-md font-bold">{task.assigned_to}</span>}
+                          {task.source && <span className="bg-white border border-fence-lt text-xs text-stone-c px-2 py-1 rounded-md font-bold capitalize">{task.source}</span>}
                         </div>
 
-                        <div className="flex gap-2 font-dm-sans">
-                          <button onClick={(e) => handleComplete(e, task.id)} className="flex-1 bg-soil text-white py-2 rounded-lg font-bold text-sm flex justify-center items-center gap-2 shadow-sm">
-                            <Check className="w-4 h-4"/> Complete
-                          </button>
+                        {/* Action buttons */}
+                        <div className="flex gap-2 font-dm-sans mb-2">
+                          {task.status === 'completed' ? (
+                            <button onClick={(e) => { e.stopPropagation(); saveTask(task.id, { status: 'pending', completed_at: null } as any); }} className="flex-1 bg-bloom text-white py-2 rounded-lg font-bold text-sm flex justify-center items-center gap-2 shadow-sm">
+                              Reopen
+                            </button>
+                          ) : (
+                            <button onClick={(e) => handleComplete(e, task.id)} className="flex-1 bg-leaf text-white py-2 rounded-lg font-bold text-sm flex justify-center items-center gap-2 shadow-sm">
+                              <Check className="w-4 h-4"/> Complete
+                            </button>
+                          )}
                           <button onClick={(e) => handleSnooze(e, task)} className="flex-1 bg-white border border-fence-lt text-stone-c py-2 rounded-lg font-bold text-sm flex justify-center items-center gap-2">
-                            <Clock className="w-4 h-4"/> Snooze
+                            <Clock className="w-4 h-4"/> +1 Day
                           </button>
-                          <button onClick={(e) => handleDismiss(e, task.id)} className="px-3 bg-white border border-fence-lt text-stone-c py-2 rounded-lg font-bold text-sm flex justify-center items-center">
+                          <button onClick={(e) => handleDismiss(e, task.id)} className="px-3 bg-white border border-frost-lt text-frost py-2 rounded-lg font-bold text-sm flex justify-center items-center">
                             <X className="w-4 h-4"/>
+                          </button>
+                        </div>
+
+                        {/* Edit title + Delete */}
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingTitle(task.id); setTitleInput(task.title); }}
+                            className="flex-1 py-2 rounded-lg font-bold text-xs border border-fence text-stone-c hover:bg-clay transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Pencil className="w-3 h-3" /> Edit Title
+                          </button>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Delete "${task.title}"?`)) {
+                                await deleteTask(task.id);
+                                setExpandedTask(null);
+                              }
+                            }}
+                            className="py-2 px-4 rounded-lg font-bold text-xs border border-frost-lt text-frost hover:bg-frost-lt transition-colors flex items-center justify-center gap-1"
+                          >
+                            <X className="w-3 h-3" /> Delete
                           </button>
                         </div>
                       </div>

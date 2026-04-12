@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { onSnapshot, doc, setDoc, Timestamp, orderBy, query } from "firebase/firestore";
+import { onSnapshot, doc, setDoc, deleteDoc, Timestamp, orderBy, query } from "firebase/firestore";
 import { collections } from "@/lib/firestore";
 import type { Task } from "@/lib/types";
 
@@ -46,5 +46,9 @@ export function useTasks() {
     return newRef.id;
   };
 
-  return { tasks, loading, error, saveTask, createTask };
+  const deleteTask = async (id: string) => {
+    await deleteDoc(doc(collections.tasks, id));
+  };
+
+  return { tasks, loading, error, saveTask, createTask, deleteTask };
 }
