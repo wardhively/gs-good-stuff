@@ -230,7 +230,7 @@ export default function FarmMap() {
 
       {/* Add FAB with menu */}
       {!isDrawing && !selectedZone && !selectedFeature && (
-        <div className="absolute bottom-24 right-6 z-[1000]">
+        <div className="fixed bottom-24 right-6 z-[1000]">
           {showAddMenu && (
             <div className="mb-2 bg-linen rounded-xl shadow-lg border border-fence-lt p-2 space-y-1 min-w-[160px]">
               <button
