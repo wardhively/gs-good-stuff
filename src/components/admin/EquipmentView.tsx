@@ -38,6 +38,8 @@ export default function EquipmentView() {
   const [addingServiceTo, setAddingServiceTo] = useState<string | null>(null);
   const [newSvcType, setNewSvcType] = useState("");
   const [newSvcInterval, setNewSvcInterval] = useState("");
+  const [updatingHoursId, setUpdatingHoursId] = useState<string | null>(null);
+  const [hoursInput, setHoursInput] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoUploadId, setPhotoUploadId] = useState<string | null>(null);
@@ -162,9 +164,42 @@ export default function EquipmentView() {
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider ${getStatusColor(eq.status)}`}>
                       {eq.status.replace("_", " ")}
                     </span>
-                    <span className="text-xs text-stone-c font-dm-sans font-bold flex items-center gap-1">
-                      <Gauge className="w-3 h-3 text-petal" /> {eq.current_hours} hrs
-                    </span>
+                    {updatingHoursId === eq.id ? (
+                      <form
+                        className="flex items-center gap-1"
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const hrs = parseFloat(hoursInput);
+                          if (!isNaN(hrs) && hrs >= 0) await saveEquipment(eq.id, { current_hours: hrs } as any);
+                          setUpdatingHoursId(null);
+                        }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <Gauge className="w-3 h-3 text-petal" />
+                        <input
+                          type="number"
+                          value={hoursInput}
+                          onChange={e => setHoursInput(e.target.value)}
+                          autoFocus
+                          className="w-16 px-1 py-0.5 text-xs font-bold rounded border border-petal bg-petal-lt text-root focus:outline-none"
+                          onBlur={async () => {
+                            const hrs = parseFloat(hoursInput);
+                            if (!isNaN(hrs) && hrs >= 0) await saveEquipment(eq.id, { current_hours: hrs } as any);
+                            setUpdatingHoursId(null);
+                          }}
+                        />
+                        <span className="text-xs text-stone-c font-bold">hrs</span>
+                      </form>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setUpdatingHoursId(eq.id); setHoursInput(eq.current_hours.toString()); }}
+                        className="text-xs text-stone-c font-dm-sans font-bold flex items-center gap-1 hover:text-petal transition-colors"
+                        title="Tap to update hours"
+                      >
+                        <Gauge className="w-3 h-3 text-petal" /> {eq.current_hours} hrs
+                      </button>
+                    )}
                   </div>
                   <h3 className="font-bold text-root text-lg leading-tight">{eq.name}</h3>
                   <p className="text-xs text-stone-c font-dm-sans">{eq.make_model || eq.type}</p>
