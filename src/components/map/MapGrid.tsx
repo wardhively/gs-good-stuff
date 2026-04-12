@@ -94,7 +94,7 @@ export default function MapGrid({ enabled }: MapGridProps) {
         />
       ))}
       {/* Grid scale label — rendered as a div overlay */}
-      <div className="absolute top-14 left-3 z-[500] bg-root/70 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-md pointer-events-none">
+      <div className="absolute top-28 left-3 z-[500] bg-root/70 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-md pointer-events-none">
         Grid: {label}
       </div>
     </>
