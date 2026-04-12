@@ -48,8 +48,8 @@ export default function ShopPage() {
       {/* Hero strip */}
       <div className="bg-root py-16 px-6">
         <div className="max-w-6xl mx-auto text-center">
-          <h1 className="animate-fade-up font-bitter text-4xl md:text-5xl font-bold text-linen mb-3">Tuber Catalog</h1>
-          <p className="animate-fade-up-delay-1 font-dm-sans text-fence/60 text-lg">Every tuber guaranteed viable with visible eyes</p>
+          <h1 className="animate-fade-up font-bitter text-4xl md:text-5xl font-bold text-linen mb-3">Fresh Cut Dahlias</h1>
+          <p className="animate-fade-up-delay-1 font-dm-sans text-fence/60 text-lg">Seasonal blooms, cut fresh from our fields in Addison, NY</p>
         </div>
       </div>
 

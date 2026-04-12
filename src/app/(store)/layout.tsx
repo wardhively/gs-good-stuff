@@ -33,7 +33,7 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
         <nav className="flex flex-col p-6 gap-1 font-dm-sans">
           {[
-            { href: "/shop", label: "Shop Tubers" },
+            { href: "/shop", label: "Shop Blooms" },
             { href: "/blog", label: "Growing Guide" },
             { href: "/about", label: "Our Story" },
             { href: "/cart", label: "Cart" },
@@ -45,7 +45,7 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
         </nav>
         <div className="mt-auto p-6 border-t border-fence-lt">
           <p className="text-xs text-stone-c font-dm-sans">Addison, NY · Zone 5b</p>
-          <p className="text-xs text-ash mt-1">Farm fresh dahlia tubers</p>
+          <p className="text-xs text-ash mt-1">Fresh cut dahlias, bouquets & arrangements</p>
         </div>
       </div>
     </div>
@@ -106,12 +106,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
               <div>
                 <h3 className="font-bitter text-xl font-bold text-linen mb-3">G&S Good Stuff</h3>
-                <p className="text-sm text-fence/70 font-dm-sans leading-relaxed">Farm fresh dahlia tubers grown with intention in Addison, NY. USDA Zone 5b.</p>
+                <p className="text-sm text-fence/70 font-dm-sans leading-relaxed">Farm fresh cut dahlias grown with intention in Addison, NY. Bouquets, arrangements, and wholesale stems.</p>
               </div>
               <div>
                 <h4 className="font-bold text-linen text-sm uppercase tracking-widest mb-3">Navigate</h4>
                 <div className="flex flex-col gap-2 font-dm-sans text-sm">
-                  <Link href="/shop" className="text-fence/70 hover:text-petal transition-colors">Shop Tubers</Link>
+                  <Link href="/shop" className="text-fence/70 hover:text-petal transition-colors">Shop Blooms</Link>
                   <Link href="/blog" className="text-fence/70 hover:text-petal transition-colors">Growing Guide</Link>
                   <Link href="/about" className="text-fence/70 hover:text-petal transition-colors">Our Story</Link>
                 </div>

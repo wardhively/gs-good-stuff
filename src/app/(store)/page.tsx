@@ -37,16 +37,16 @@ export default function StorefrontHome() {
 
           <h1 className="animate-fade-up-delay-1 font-bitter text-5xl md:text-7xl font-bold text-linen leading-[1.1] mb-6">
             Farm Fresh<br />
-            <span className="text-petal">Dahlia Tubers</span>
+            <span className="text-petal">Cut Dahlias</span>
           </h1>
 
           <p className="animate-fade-up-delay-2 text-lg md:text-xl text-fence/70 font-dm-sans max-w-lg mx-auto mb-10 leading-relaxed">
-            Grown with intention on 16 acres in the Canisteo River valley. Premium varieties, hand-divided, shipped to your door.
+            Stunning blooms grown on 16 acres in the Canisteo River valley. Bouquets, stems, and arrangements for weddings, events, and your table.
           </p>
 
           <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/shop" className="group inline-flex items-center gap-3 bg-petal text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-petal/90 hover:shadow-xl transition-all active:scale-95">
-              Shop Tubers
+              Shop Blooms
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link href="/about" className="inline-flex items-center gap-2 text-linen/60 hover:text-linen px-6 py-4 font-dm-sans font-medium transition-colors">
@@ -67,9 +67,9 @@ export default function StorefrontHome() {
         <div className="max-w-5xl mx-auto px-6 py-6 flex flex-wrap justify-center gap-8 md:gap-16 text-center">
           {[
             { icon: Sun, text: "16 Acres, Full Sun" },
-            { icon: Snowflake, text: "Zone 5b Hardened" },
-            { icon: Heart, text: "Hand Divided" },
-            { icon: MapPin, text: "Ships Nationwide" },
+            { icon: Flower2, text: "150+ Bloom Varieties" },
+            { icon: Heart, text: "Cut Fresh Daily" },
+            { icon: MapPin, text: "Local Delivery + Events" },
           ].map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-2 text-stone-c text-sm font-dm-sans font-medium">
               <Icon className="w-4 h-4 text-petal" />
@@ -133,9 +133,9 @@ export default function StorefrontHome() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: Flower2, title: "Wedding & Event Florists", desc: "Dinner-plate blooms in every color for your biggest day. We grow the show-stopping varieties that elevate bouquets, centerpieces, and arches. Bulk pricing available.", cta: "Plan Your Wedding Blooms" },
-              { icon: Sprout, title: "Home Gardeners", desc: "Whether you're planting your first dahlia or your hundredth, our Zone 5b-hardened tubers arrive ready to thrive. We include growing tips with every order.", cta: "Start Your Garden" },
-              { icon: Gift, title: "Gift Givers", desc: "Mother's Day, Easter, birthdays, housewarmings — a dahlia tuber is a gift that blooms all summer long. Beautifully packed and shipped with a care card.", cta: "Send a Living Gift" },
+              { icon: Flower2, title: "Weddings & Events", desc: "Dinner-plate dahlias in every color for your biggest day. Bouquets, centerpieces, boutonnieres, and arches. We work with your florist or deliver direct. Bulk pricing available.", cta: "Plan Your Event Flowers" },
+              { icon: Heart, title: "Weekly Bouquets", desc: "Fresh-cut dahlia bouquets delivered to your door or available for pickup. Seasonal subscriptions available June through October. Every arrangement is one of a kind.", cta: "Order a Bouquet" },
+              { icon: Gift, title: "Gifts & Special Occasions", desc: "Mother's Day, Easter, birthdays, anniversaries — nothing says it like farm-fresh flowers. Beautifully wrapped and delivered with a handwritten card.", cta: "Send Fresh Flowers" },
             ].map((item, i) => (
               <div key={i} className={`reveal reveal-delay-${i + 1} bg-linen rounded-2xl p-8 border border-fence-lt card-hover text-center`}>
                 <div className="w-12 h-12 rounded-full bg-petal/10 flex items-center justify-center mx-auto mb-4"><item.icon className="w-6 h-6 text-petal" /></div>
@@ -149,8 +149,8 @@ export default function StorefrontHome() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
             {[
-              { icon: Scissors, title: "Cut Flower Farmers", desc: "High-yield varieties bred for vase life and stem length. We track division yields so you know exactly what to expect. Wholesale pricing for orders of 50+." },
-              { icon: Users, title: "Churches & Garden Clubs", desc: "Group orders for communal gardens, Easter displays, and fundraiser plant sales. We'll work with your timeline and budget." },
+              { icon: Scissors, title: "Florists & Designers", desc: "Wholesale stems and custom color palettes for your studio. Consistent supply through the growing season. We deliver locally or you can pick up at the farm." },
+              { icon: Users, title: "Churches, Wineries & Venues", desc: "Regular arrangements for your altar, tasting room, or lobby. Weekly standing orders at volume pricing. Let us handle the flowers while you focus on your guests." },
             ].map((item, i) => (
               <div key={i} className={`reveal reveal-delay-${i + 1} bg-linen rounded-2xl p-8 border border-fence-lt card-hover flex gap-6 items-start`}>
                 <div className="w-10 h-10 rounded-full bg-creek/10 flex items-center justify-center flex-shrink-0"><item.icon className="w-5 h-5 text-creek" /></div>
@@ -172,7 +172,7 @@ export default function StorefrontHome() {
             From Our Hands<br />to Your Garden
           </h2>
           <p className="text-lg text-stone-c font-dm-sans leading-relaxed max-w-2xl mx-auto mb-8">
-            Every tuber is hand-divided, inspected, and packed with care. We grow because we love it — and we want you to love it too. Our 5-year mission: scale from 100 to 80,000 tubers while keeping the personal touch.
+            Every stem is cut at peak bloom, conditioned in our cooler, and arranged with care. We grow because we love it — and we want you to see that love on your table, at your wedding, or in your hands. Our 5-year mission: become the go-to dahlia source in the Southern Tier.
           </p>
           <Link href="/about" className="group inline-flex items-center gap-2 text-petal font-bold hover:text-soil transition-colors">
             Read Our Story <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
