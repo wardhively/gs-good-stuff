@@ -96,7 +96,7 @@ export function SiteFeatureCreateSheet({ coordinates, geometryType, onSave, onCa
         geometry_type: geometryType,
         geometry,
         color: typeInfo.color,
-        notes: notes || undefined,
+        ...(notes ? { notes } : {}),
       } as any);
       onSave();
     } finally {
