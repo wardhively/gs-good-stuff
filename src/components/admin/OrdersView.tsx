@@ -97,7 +97,7 @@ export default function OrdersView() {
                             {order.status}
                          </span>
                          <span className="text-[10px] text-stone-c font-dm-sans font-bold uppercase flex items-center gap-1">
-                            <Hash className="w-3 h-3" /> {order.stripe_session_id.substring(8, 16)}
+                            <Hash className="w-3 h-3" /> {order.stripe_session_id?.substring(8, 16) || order.source || 'manual'}
                          </span>
                       </div>
                       <h3 className="font-bold text-root text-lg leading-tight flex items-center gap-2">
