@@ -3,6 +3,7 @@ import { onSnapshot, doc, writeBatch, setDoc, Timestamp } from "firebase/firesto
 import { collections } from "@/lib/firestore";
 import { db } from "@/lib/firebase";
 import type { Variety } from "@/lib/types";
+import { syncVarietyToStripe, removeVarietyFromStripe } from "@/lib/stripe-sync";
 
 export function useInventory() {
   const [varieties, setVarieties] = useState<Variety[]>([]);
@@ -31,6 +32,21 @@ export function useInventory() {
   const saveVariety = async (varietyId: string, updates: Partial<Variety>) => {
     const vRef = doc(collections.varieties, varietyId);
     await setDoc(vRef, { ...updates, updated_at: Timestamp.now() }, { merge: true });
+
+    // Auto-sync to Stripe when status or price changes
+    if (updates.status || updates.price !== undefined || updates.count !== undefined) {
+      try {
+        const current = varieties.find(v => v.id === varietyId);
+        if (current) {
+          const merged = { ...current, ...updates };
+          if (merged.status === 'listed' && merged.count > 0) {
+            await syncVarietyToStripe(merged as Variety);
+          } else if (updates.status && updates.status !== 'listed') {
+            await removeVarietyFromStripe(varietyId);
+          }
+        }
+      } catch { /* Stripe sync failure is non-critical */ }
+    }
   };
 
   const createVariety = async (variety: Omit<Variety, "id" | "created_at" | "updated_at">) => {
