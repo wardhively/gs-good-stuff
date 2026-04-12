@@ -6,6 +6,8 @@ import type { Variety } from '@/lib/types';
 import { STATUS_COLORS, StatusEnum } from '@/lib/constants';
 import { advanceVarietyStatus, getNextStatus } from '@/lib/inventory-utils';
 import { useZones } from '@/hooks/useZones';
+import { useInventory } from '@/hooks/useInventory';
+import { useOrders } from '@/hooks/useOrders';
 import { cacheFileOffline, syncPendingFiles } from '@/lib/storage-sync';
 import { get } from 'idb-keyval';
 import Checklist from '@/components/admin/Checklist';
@@ -21,7 +23,14 @@ interface VarietyDetailSheetProps {
 export default function VarietyDetailSheet({ variety, onClose, onSave }: VarietyDetailSheetProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
+  const [splitQty, setSplitQty] = useState(1);
+  const [splitAction, setSplitAction] = useState<'sell' | 'split'>('sell');
+  const [saleSource, setSaleSource] = useState<'manual' | 'market' | 'wholesale'>('manual');
+  const [customerName, setCustomerName] = useState('');
   const { zones } = useZones();
+  const { createVariety } = useInventory();
+  const { createOrder } = useOrders();
 
   // Edit form state
   const [name, setName] = useState(variety.name);
@@ -199,7 +208,7 @@ export default function VarietyDetailSheet({ variety, onClose, onSave }: Variety
                 <div className="bg-cream p-4 rounded-xl border border-fence-lt flex flex-col items-center justify-center">
                   <Database className="w-5 h-5 text-ash mb-1" />
                   <p className="text-[10px] uppercase text-stone-c tracking-wider font-bold">Zone</p>
-                  <p className="text-lg font-bold text-root truncate w-full text-center">{variety.zone_id || 'Unassigned'}</p>
+                  <p className="text-lg font-bold text-root truncate w-full text-center">{zones.find(z => z.id === variety.zone_id)?.name || 'Unassigned'}</p>
                 </div>
               </div>
 
@@ -295,6 +304,134 @@ export default function VarietyDetailSheet({ variety, onClose, onSave }: Variety
                   Publish to Store
                 </button>
               ) : null}
+
+              {/* Sell / Split */}
+              {variety.count > 0 && (
+                <div className="mt-3">
+                  {!showSplit ? (
+                    <button
+                      onClick={() => setShowSplit(true)}
+                      className="w-full py-3 rounded-xl font-bold bg-petal text-white hover:bg-petal/80 transition-colors"
+                    >
+                      Sell / Split Inventory
+                    </button>
+                  ) : (
+                    <div className="bg-cream rounded-xl border border-fence-lt p-4 space-y-3">
+                      {/* Action toggle */}
+                      <div className="flex gap-2">
+                        <button onClick={() => setSplitAction('sell')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${splitAction === 'sell' ? 'bg-soil text-white' : 'bg-clay text-stone-c'}`}>
+                          Record Sale
+                        </button>
+                        <button onClick={() => setSplitAction('split')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${splitAction === 'split' ? 'bg-soil text-white' : 'bg-clay text-stone-c'}`}>
+                          Split Record
+                        </button>
+                      </div>
+
+                      {/* Quantity */}
+                      <div>
+                        <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Quantity ({variety.count} available)</label>
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => setSplitQty(q => Math.max(1, q - 1))} className="w-10 h-10 rounded-lg bg-clay text-root font-bold text-lg flex items-center justify-center active:scale-90">−</button>
+                          <span className="text-2xl font-bold text-root w-12 text-center">{splitQty}</span>
+                          <button onClick={() => setSplitQty(q => Math.min(variety.count, q + 1))} className="w-10 h-10 rounded-lg bg-clay text-root font-bold text-lg flex items-center justify-center active:scale-90">+</button>
+                        </div>
+                      </div>
+
+                      {/* Sale-specific fields */}
+                      {splitAction === 'sell' && (
+                        <>
+                          <div>
+                            <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Sale Type</label>
+                            <div className="flex gap-1.5">
+                              {(['manual', 'market', 'wholesale'] as const).map(s => (
+                                <button key={s} onClick={() => setSaleSource(s)} className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold capitalize transition-colors ${saleSource === s ? 'bg-petal text-white' : 'bg-clay text-stone-c'}`}>
+                                  {s === 'manual' ? 'Direct' : s}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Customer Name</label>
+                            <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Walk-in customer" className="w-full px-3 py-2 rounded-lg border border-fence bg-linen text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal" />
+                          </div>
+                          <div className="bg-petal-lt/50 rounded-lg p-3 text-xs text-root space-y-1">
+                            <div className="flex justify-between"><span className="text-stone-c">Unit price</span><span className="font-bold">${variety.price?.toFixed(2) || '0.00'}</span></div>
+                            <div className="flex justify-between"><span className="text-stone-c">Quantity</span><span className="font-bold">× {splitQty}</span></div>
+                            <div className="flex justify-between border-t border-petal/20 pt-1 mt-1"><span className="font-bold">Total</span><span className="font-bold text-petal">${((variety.price || 0) * splitQty).toFixed(2)}</span></div>
+                          </div>
+                        </>
+                      )}
+
+                      {splitAction === 'split' && (
+                        <p className="text-xs text-stone-c">Create a new "{variety.name}" record with {splitQty}. Original keeps {variety.count - splitQty}.</p>
+                      )}
+
+                      <div className="flex gap-2">
+                        <button onClick={() => { setShowSplit(false); setSplitQty(1); setCustomerName(''); }} className="flex-1 py-2 rounded-lg font-bold border border-fence text-stone-c text-sm">Cancel</button>
+                        <button
+                          onClick={async () => {
+                            const remaining = variety.count - splitQty;
+                            const zoneName = zones.find(z => z.id === variety.zone_id)?.name || '';
+
+                            if (splitAction === 'sell') {
+                              // 1. Create Order document
+                              const unitPrice = variety.price || 0;
+                              const subtotal = unitPrice * splitQty;
+                              await createOrder({
+                                source: saleSource,
+                                customer_name: customerName || 'Walk-in',
+                                items: [{
+                                  variety_id: variety.id,
+                                  zone_id: variety.zone_id,
+                                  name: variety.name,
+                                  quantity: splitQty,
+                                  unit_price: unitPrice,
+                                }],
+                                subtotal,
+                                shipping_cost: 0,
+                                total: subtotal,
+                                status: 'fulfilled',
+                                notes: `Manual sale from ${zoneName || 'unknown zone'}`,
+                              } as any);
+
+                              // 2. Decrement variety count
+                              await onSave(variety.id, {
+                                count: remaining,
+                                ...(remaining <= 0 ? { status: StatusEnum.SOLD } : {}),
+                              } as any);
+                            } else {
+                              // Split: reduce original, create new variety record
+                              await onSave(variety.id, { count: remaining } as any);
+                              await createVariety({
+                                name: variety.name,
+                                zone_id: variety.zone_id,
+                                count: splitQty,
+                                status: variety.status,
+                                bloom_form: variety.bloom_form,
+                                bloom_size: variety.bloom_size,
+                                height: variety.height,
+                                season: variety.season,
+                                grade: variety.grade,
+                                price: variety.price,
+                                color_hex: variety.color_hex,
+                                notes: `Split from ${variety.name} (${splitQty} of ${variety.count})`,
+                              } as any);
+                            }
+                            setShowSplit(false);
+                            setSplitQty(1);
+                            setCustomerName('');
+                            onClose();
+                          }}
+                          disabled={splitQty < 1 || splitQty > variety.count}
+                          className="flex-1 py-2 rounded-lg font-bold bg-petal text-white text-sm disabled:opacity-30"
+                        >
+                          {splitAction === 'sell' ? `Sell ${splitQty} · $${((variety.price || 0) * splitQty).toFixed(2)}` : `Split ${splitQty}`}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <button
                 onClick={() => setEditing(true)}

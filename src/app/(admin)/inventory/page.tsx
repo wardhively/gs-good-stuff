@@ -133,7 +133,7 @@ export default function InventoryPage() {
                   )}
                   <div>
                     <h3 className="font-bold text-root text-lg">{v.name}</h3>
-                    <p className="text-xs text-stone-c font-dm-sans">{v.zone_id || 'No Zone'} • {v.bloom_form || 'Form Unknown'}</p>
+                    <p className="text-xs text-stone-c font-dm-sans">{zones.find(z => z.id === v.zone_id)?.name || v.zone_id || 'No Zone'} • {v.bloom_form || 'Form Unknown'}</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">

@@ -35,5 +35,16 @@ export function useOrders() {
     await setDoc(ref, { ...updates, updated_at: Timestamp.now() }, { merge: true });
   };
 
-  return { orders, loading, error, saveOrder };
+  const createOrder = async (data: Omit<Order, "id" | "created_at" | "updated_at">) => {
+    const newRef = doc(collections.orders);
+    await setDoc(newRef, {
+      ...data,
+      id: newRef.id,
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now(),
+    });
+    return newRef.id;
+  };
+
+  return { orders, loading, error, saveOrder, createOrder };
 }

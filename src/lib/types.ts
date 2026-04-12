@@ -116,18 +116,25 @@ export interface Equipment {
   updated_at: Timestamp;
 }
 
+export interface OrderItem {
+  variety_id: string;
+  zone_id?: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+}
+
 export interface Order {
   id: string;
-  stripe_session_id: string;
+  stripe_session_id?: string;
   stripe_payment_intent?: string;
+  source: 'online' | 'manual' | 'market' | 'wholesale';
   customer_name: string;
-  customer_email: string;
-  shipping_address: {
+  customer_email?: string;
+  shipping_address?: {
     line1: string; line2?: string; city: string; state: string; zip: string; country: string;
   };
-  items: Array<{
-    variety_id: string; name: string; quantity: number; unit_price: number;
-  }>;
+  items: OrderItem[];
   subtotal: number;
   shipping_cost: number;
   discount?: number;
