@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
-import * as admin from "firebase-admin";
 import { buildFarmContext } from "@/lib/assistant-context";
 import { BORDEN_TOOLS, executeTool } from "@/lib/assistant-tools";
-// USER_GUIDE removed from system prompt — too large. Borden has condensed knowledge inline.
-
-const Timestamp = admin.firestore.Timestamp;
 
 const MODEL = "claude-sonnet-4-20250514";
 const FALLBACK_MODEL = "claude-3-5-sonnet-20241022";
@@ -121,37 +116,9 @@ export async function POST(request: Request) {
       ?.map((b: any) => b.text)
       ?.join("\n") || "I couldn't generate a response. Try again.";
 
-    // Save to Firestore if we have a conversation ID
-    if (conversationId) {
-      try {
-        const convRef = adminDb.collection('assistant_conversations').doc(conversationId);
-        const convSnap = await convRef.get();
-
-        const userMsg = { role: 'user', content: message, created_at: Timestamp.now() };
-        const assistantMsg = {
-          role: 'assistant',
-          content: textContent,
-          ...(actions.length > 0 ? { actions_taken: actions } : {}),
-          created_at: Timestamp.now(),
-        };
-
-        if (convSnap.exists) {
-          await convRef.update({
-            messages: admin.firestore.FieldValue.arrayUnion(userMsg, assistantMsg),
-            updated_at: Timestamp.now(),
-          });
-        } else {
-          await convRef.set({
-            id: conversationId,
-            title: message.substring(0, 50),
-            messages: [userMsg, assistantMsg],
-            created_at: Timestamp.now(),
-            updated_at: Timestamp.now(),
-          });
-        }
-      } catch {
-        // Non-critical — conversation saves can fail silently
-      }
+    // Conversation history is managed client-side via useAssistant hook
+    // Server-side persistence removed to avoid firebase-admin dependency on Cloud Run
+    if (false) {
     }
 
     return NextResponse.json({ response: textContent, actions });
