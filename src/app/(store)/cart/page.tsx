@@ -1,13 +1,38 @@
 "use client";
 
 import { useCart } from "@/lib/cart";
-import { Trash2, ArrowRight, Truck, MapPin, Store, Gift, Building, User } from "lucide-react";
+import { Trash2, ArrowRight, Truck, MapPin, Store, Gift, Building, AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function CartPage() {
   const { items, updateQuantity, removeFromCart, cartTotal } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [stock, setStock] = useState<Record<string, number>>({});
+
+  // Fetch current stock levels for cart items
+  useEffect(() => {
+    async function checkStock() {
+      if (items.length === 0) return;
+      try {
+        const q = query(collection(db, "varieties"), where("status", "==", "listed"));
+        const snap = await getDocs(q);
+        const levels: Record<string, number> = {};
+        snap.docs.forEach(d => { levels[d.id] = d.data().count || 0; });
+        setStock(levels);
+        // Auto-cap quantities to available stock
+        items.forEach(item => {
+          const avail = levels[item.variety_id];
+          if (avail !== undefined && item.quantity > avail) {
+            updateQuantity(item.variety_id, Math.max(1, avail));
+          }
+        });
+      } catch {}
+    }
+    checkStock();
+  }, [items.length]);
 
   // Delivery options
   const [deliveryMethod, setDeliveryMethod] = useState<'ship' | 'local_delivery' | 'pickup'>('ship');
@@ -20,6 +45,12 @@ export default function CartPage() {
   const orderTotal = cartTotal + shipping;
 
   const handleCheckout = async () => {
+    // Validate stock before checkout
+    const overStock = items.filter(item => stock[item.variety_id] !== undefined && item.quantity > stock[item.variety_id]);
+    if (overStock.length > 0) {
+      alert(`Sorry, ${overStock.map(i => `${i.name} only has ${stock[i.variety_id]} available`).join(', ')}. Please adjust quantities.`);
+      return;
+    }
     setIsCheckingOut(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -82,10 +113,21 @@ export default function CartPage() {
                   <p className="font-bold text-root truncate">{item.name}</p>
                   <p className="text-xs text-stone-c font-dm-sans">${item.unit_price.toFixed(2)} each</p>
                 </div>
-                <div className="flex items-center border border-fence rounded-full overflow-hidden bg-cream shrink-0">
-                  <button onClick={() => updateQuantity(item.variety_id, item.quantity - 1)} className="px-3 py-1.5 text-stone-c font-bold hover:bg-clay">-</button>
-                  <span className="w-6 text-center text-sm font-bold text-root">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.variety_id, item.quantity + 1)} className="px-3 py-1.5 text-stone-c font-bold hover:bg-clay">+</button>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <div className="flex items-center border border-fence rounded-full overflow-hidden bg-cream">
+                    <button onClick={() => updateQuantity(item.variety_id, item.quantity - 1)} className="px-3 py-1.5 text-stone-c font-bold hover:bg-clay">-</button>
+                    <span className="w-6 text-center text-sm font-bold text-root">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.variety_id, Math.min(item.quantity + 1, stock[item.variety_id] || 99))}
+                      disabled={stock[item.variety_id] !== undefined && item.quantity >= stock[item.variety_id]}
+                      className="px-3 py-1.5 text-stone-c font-bold hover:bg-clay disabled:opacity-30"
+                    >+</button>
+                  </div>
+                  {stock[item.variety_id] !== undefined && stock[item.variety_id] <= 5 && (
+                    <span className="text-[10px] text-frost font-bold flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> {stock[item.variety_id]} available
+                    </span>
+                  )}
                 </div>
                 <span className="font-bold text-root min-w-[60px] text-right">${(item.quantity * item.unit_price).toFixed(2)}</span>
                 <button onClick={() => removeFromCart(item.variety_id)} className="p-2 text-ash hover:text-frost transition-colors"><Trash2 className="w-4 h-4" /></button>
