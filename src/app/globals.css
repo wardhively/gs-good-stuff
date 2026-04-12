@@ -1,26 +1,46 @@
 @import "tailwindcss";
+@config "../../tailwind.config.ts";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-soil: #4A3728;
+  --color-root: #332518;
+  --color-petal: #C17F4E;
+  --color-petal-lt: #F5E4D2;
+  --color-leaf: #5B7C4F;
+  --color-leaf-lt: #E6EFE3;
+  --color-leaf-dk: #3D5933;
+  --color-bloom: #CB9B2D;
+  --color-bloom-lt: #FCF3DC;
+  --color-frost: #B94A42;
+  --color-frost-lt: #F9DEDD;
+  --color-creek: #3E7A8C;
+  --color-creek-lt: #D6ECF2;
+  --color-cream: #FAF6EF;
+  --color-linen: #FFFFFF;
+  --color-clay: #F3ECE2;
+  --color-fence: #E4DDD2;
+  --color-fence-lt: #EDE7DF;
+  --color-stone-c: #8B7D6B;
+  --color-ash: #A99D8F;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-cream text-root font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    background-color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

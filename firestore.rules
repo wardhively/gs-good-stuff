@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Admin Only Rule mapping
+    function isAdmin() {
+      return request.auth != null && (request.auth.token.email == "gary@gsgoodstuff.com" || request.auth.token.email == "suzy@gsgoodstuff.com");
+    }
+
+    match /varieties/{varietyId} {
+       // Admins can write
+       allow write: if isAdmin();
+       // Public can read listed varieties that are strictly available accurately
+       allow read: if isAdmin() || (resource.data.status == "listed" && resource.data.count > 0);
+    }
+
+    match /journal_entries/{journalId} {
+       allow write: if isAdmin();
+       allow read: if isAdmin() || resource.data.is_public == true;
+    }
+
+    // Default admin constraint securely mapping boundaries against all other internal system paths (tasks, logs, etc)
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

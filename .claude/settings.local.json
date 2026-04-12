@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(gh auth:*)",
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list)"
+    ]
+  }
+}

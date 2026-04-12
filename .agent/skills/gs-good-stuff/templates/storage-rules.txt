@@ -1,0 +1,27 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Journal photos — admin upload, public read for published entries
+    match /journal/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Variety/product photos — admin upload, public read for storefront
+    match /varieties/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Equipment photos and receipts — admin only
+    match /equipment/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // OG images for social sharing — public read, admin/function write
+    match /og-images/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

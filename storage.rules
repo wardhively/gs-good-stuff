@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isAdmin() {
+      return request.auth != null && (request.auth.token.email == "gary@gsgoodstuff.com" || request.auth.token.email == "suzy@gsgoodstuff.com");
+    }
+
+    // Public read over images for catalogs, Admin required for writing.
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

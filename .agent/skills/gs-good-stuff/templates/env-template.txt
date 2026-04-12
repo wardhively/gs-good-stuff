@@ -1,0 +1,18 @@
+# Firebase (from console.firebase.google.com > Project Settings)
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+
+# Stripe (from dashboard.stripe.com > Developers > API keys)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+# Anthropic Claude API (from console.anthropic.com)
+ANTHROPIC_API_KEY=
+
+# Pirate Ship (for shipping label generation)
+PIRATE_SHIP_API_KEY=
