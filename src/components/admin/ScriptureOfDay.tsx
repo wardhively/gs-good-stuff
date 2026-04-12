@@ -191,7 +191,7 @@ function getDayOfYear(): number {
 }
 
 export default function ScriptureOfDay() {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const dayOfYear = getDayOfYear();
   const verse = VERSES[dayOfYear % VERSES.length];
 
