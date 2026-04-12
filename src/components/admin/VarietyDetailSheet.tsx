@@ -257,17 +257,50 @@ export default function VarietyDetailSheet({ variety, onClose, onSave }: Variety
                 />
               </div>
 
-              {/* Photos */}
+              {/* Photos — multi-upload with cover selection */}
               <div className="space-y-2 mb-6">
-                <h3 className="font-bold text-root text-sm uppercase tracking-wider border-b border-fence pb-1">Photos</h3>
+                <h3 className="font-bold text-root text-sm uppercase tracking-wider border-b border-fence pb-1">
+                  Photos {variety.photo_urls && variety.photo_urls.length > 0 && <span className="text-ash font-normal">({variety.photo_urls.length})</span>}
+                </h3>
                 {variety.photo_urls && variety.photo_urls.length > 0 ? (
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {variety.photo_urls.map((url, i) => (
-                      <PhotoThumb key={i} url={url} />
-                    ))}
+                  <div className="grid grid-cols-3 gap-2">
+                    {variety.photo_urls.map((url, i) => {
+                      const isCover = i === (variety.cover_photo_index || 0);
+                      return (
+                        <div key={i} className="relative group">
+                          <PhotoThumb url={url} />
+                          {/* Cover badge */}
+                          {isCover && (
+                            <div className="absolute top-1 left-1 bg-leaf text-white text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full">Cover</div>
+                          )}
+                          {/* Actions overlay */}
+                          <div className="absolute inset-0 bg-root/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1">
+                            {!isCover && (
+                              <button
+                                onClick={() => onSave(variety.id, { cover_photo_index: i } as any)}
+                                className="bg-white text-root text-[9px] font-bold px-2 py-1 rounded-full"
+                              >
+                                Set Cover
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                const updated = [...(variety.photo_urls || [])];
+                                updated.splice(i, 1);
+                                const newCoverIndex = (variety.cover_photo_index || 0) >= updated.length ? 0 : variety.cover_photo_index || 0;
+                                onSave(variety.id, { photo_urls: updated, cover_photo_index: newCoverIndex } as any);
+                              }}
+                              className="bg-frost text-white text-[9px] font-bold px-2 py-1 rounded-full"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <p className="text-sm text-ash italic">No photos yet</p>
+                  <p className="text-sm text-ash italic">No photos yet — add photos to show on the shop</p>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => handlePhotoUpload(e.target.files)} />
                 <button
@@ -275,7 +308,7 @@ export default function VarietyDetailSheet({ variety, onClose, onSave }: Variety
                   disabled={photoUploading}
                   className="flex items-center gap-2 px-3 py-2 border border-dashed border-fence rounded-lg text-sm text-stone-c hover:bg-clay transition-colors disabled:opacity-50"
                 >
-                  <Camera className="w-4 h-4" /> {photoUploading ? 'Uploading...' : 'Add Photo'}
+                  <Camera className="w-4 h-4" /> {photoUploading ? 'Uploading...' : 'Add Photos'}
                 </button>
               </div>
 

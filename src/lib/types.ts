@@ -47,6 +47,7 @@ export interface Variety {
   height?: string;
   season?: string;
   photo_urls?: string[];
+  cover_photo_index?: number;
   notes?: string;
   checklist?: ChecklistItem[];
   status_history?: Array<{ status: StatusEnum; timestamp: Timestamp; note?: string }>;

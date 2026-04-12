@@ -92,7 +92,7 @@ export default function StorefrontHome() {
               {featured.map((v, i) => (
                 <Link href={`/shop/${v.id}`} key={v.id} className={`reveal reveal-delay-${i + 1} group card-hover rounded-2xl overflow-hidden bg-linen border border-fence-lt`}>
                   <div className="aspect-[3/4] relative overflow-hidden">
-                    {v.photo_urls?.[0] ? (
+                    {v.photo_urls?.[v.cover_photo_index || 0] ? (
                       <img src={v.photo_urls[0]} alt={v.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: v.color_hex || '#F3ECE2' }}>

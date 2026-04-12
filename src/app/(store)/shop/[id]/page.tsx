@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: PageProps) {
       title: `${variety.name} | G&S Good Stuff`,
       description: `Shop ${variety.name} dahlias. ${variety.bloom_form} · ${variety.bloom_size}.`,
       openGraph: {
-        images: variety.photo_urls?.[0] ? [variety.photo_urls[0]] : [],
+        images: variety.photo_urls?.[variety.cover_photo_index || 0] ? [variety.photo_urls[variety.cover_photo_index || 0]] : [],
       }
     };
   } catch {

@@ -98,7 +98,7 @@ export default function ShopPage() {
             {sorted.map((v, i) => (
               <div key={v.id} className={`reveal reveal-delay-${(i % 3) + 1} group card-hover rounded-2xl overflow-hidden bg-linen border border-fence-lt`}>
                 <Link href={`/shop/${v.id}`} className="block relative aspect-[3/4] overflow-hidden">
-                  {v.photo_urls?.[0] ? (
+                  {v.photo_urls?.[v.cover_photo_index || 0] ? (
                     <img src={v.photo_urls[0]} alt={v.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: v.color_hex || '#F3ECE2' }}>
@@ -130,7 +130,7 @@ export default function ShopPage() {
                   <p className="text-xs text-stone-c font-dm-sans mt-1 uppercase tracking-widest">{v.bloom_form} · {v.bloom_size} · {v.height}</p>
 
                   <button
-                    onClick={() => addToCart({ variety_id: v.id, name: v.name, quantity: 1, unit_price: v.price || 0, photo_url: v.photo_urls?.[0] })}
+                    onClick={() => addToCart({ variety_id: v.id, name: v.name, quantity: 1, unit_price: v.price || 0, photo_url: v.photo_urls?.[v.cover_photo_index || 0] })}
                     className="w-full mt-4 py-3 bg-soil text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-root active:scale-[0.98] transition-all"
                   >
                     <ShoppingBag className="w-4 h-4" /> Add to Cart
