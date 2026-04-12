@@ -1,16 +1,89 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Package, User, Hash, AlertTriangle, ArrowRight, Printer, AlertCircle } from "lucide-react";
+import { ChevronLeft, Package, User, Hash, AlertTriangle, ArrowRight, Printer, AlertCircle, Plus, Minus, X } from "lucide-react";
 import Link from "next/link";
 import { useOrders } from "@/hooks/useOrders";
-import type { Order } from "@/lib/types";
+import { useInventory } from "@/hooks/useInventory";
+import { useZones } from "@/hooks/useZones";
+import type { Order, OrderItem } from "@/lib/types";
 import { Timestamp } from "firebase/firestore";
 
 export default function OrdersView() {
-  const { orders, loading, saveOrder } = useOrders();
+  const { orders, loading, saveOrder, createOrder } = useOrders();
+  const { varieties, saveVariety } = useInventory();
+  const { zones } = useZones();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all');
+  const [showCreate, setShowCreate] = useState(false);
+  const [orderItems, setOrderItems] = useState<Array<{ variety_id: string; quantity: number }>>([]);
+  const [customerName, setCustomerName] = useState('');
+  const [saleSource, setSaleSource] = useState<'manual' | 'market' | 'wholesale'>('manual');
+  const [orderNotes, setOrderNotes] = useState('');
+
+  const listedVarieties = varieties.filter(v => v.count > 0);
+
+  const addOrderItem = () => {
+    setOrderItems(prev => [...prev, { variety_id: '', quantity: 1 }]);
+  };
+
+  const removeOrderItem = (index: number) => {
+    setOrderItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateOrderItem = (index: number, field: string, value: any) => {
+    setOrderItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  };
+
+  const getOrderTotal = () => {
+    return orderItems.reduce((sum, item) => {
+      const v = varieties.find(vr => vr.id === item.variety_id);
+      return sum + (v?.price || 0) * item.quantity;
+    }, 0);
+  };
+
+  const handleCreateOrder = async () => {
+    const validItems = orderItems.filter(i => i.variety_id && i.quantity > 0);
+    if (validItems.length === 0 || !customerName.trim()) return;
+
+    const items: OrderItem[] = validItems.map(item => {
+      const v = varieties.find(vr => vr.id === item.variety_id)!;
+      return {
+        variety_id: item.variety_id,
+        zone_id: v.zone_id,
+        name: v.name,
+        quantity: item.quantity,
+        unit_price: v.price || 0,
+      };
+    });
+
+    const subtotal = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+
+    await createOrder({
+      source: saleSource,
+      customer_name: customerName.trim(),
+      items,
+      subtotal,
+      shipping_cost: 0,
+      total: subtotal,
+      status: 'fulfilled',
+      ...(orderNotes ? { notes: orderNotes } : {}),
+    } as any);
+
+    // Decrement variety counts
+    for (const item of validItems) {
+      const v = varieties.find(vr => vr.id === item.variety_id);
+      if (v) {
+        const newCount = Math.max(0, v.count - item.quantity);
+        await saveVariety(item.variety_id, { count: newCount, ...(newCount <= 0 ? { status: 'sold' as any } : {}) } as any);
+      }
+    }
+
+    setShowCreate(false);
+    setOrderItems([]);
+    setCustomerName('');
+    setOrderNotes('');
+  };
 
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
@@ -286,6 +359,98 @@ export default function OrdersView() {
                </div>
             ))}
          </div>
+      )}
+      {/* FAB */}
+      <button
+        onClick={() => { setShowCreate(true); addOrderItem(); }}
+        className="fixed bottom-24 right-6 w-14 h-14 bg-petal text-white rounded-full shadow-lg flex justify-center items-center hover:scale-105 active:scale-95 transition-all z-40"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
+      {/* Create Order Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-[2000] flex flex-col justify-end">
+          <div className="absolute inset-0 bg-root/40 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
+          <div className="relative bg-linen rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.2)] max-h-[90vh] overflow-y-auto">
+            <div className="w-12 h-1 bg-fence rounded-full mx-auto mt-3 mb-2" />
+            <div className="px-6 pb-6">
+              <h2 className="font-bitter text-xl font-bold text-root mb-4">New Order</h2>
+
+              {/* Sale source */}
+              <div className="flex gap-1.5 mb-4">
+                {(['manual', 'market', 'wholesale'] as const).map(s => (
+                  <button key={s} onClick={() => setSaleSource(s)} className={`flex-1 py-2 rounded-lg text-xs font-bold capitalize transition-colors ${saleSource === s ? 'bg-petal text-white' : 'bg-clay text-stone-c'}`}>
+                    {s === 'manual' ? 'Walk-in' : s}
+                  </button>
+                ))}
+              </div>
+
+              {/* Customer */}
+              <div className="mb-4">
+                <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Customer Name *</label>
+                <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="John Smith" className="w-full px-3 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal" />
+              </div>
+
+              {/* Line items */}
+              <div className="mb-4">
+                <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-2">Items</label>
+                {orderItems.map((item, i) => {
+                  const v = varieties.find(vr => vr.id === item.variety_id);
+                  return (
+                    <div key={i} className="flex items-center gap-2 mb-2">
+                      <select
+                        value={item.variety_id}
+                        onChange={e => updateOrderItem(i, 'variety_id', e.target.value)}
+                        className="flex-1 px-2 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal"
+                      >
+                        <option value="">Select variety...</option>
+                        {listedVarieties.map(vr => (
+                          <option key={vr.id} value={vr.id}>{vr.name} ({vr.count} avail) — ${vr.price || 0}</option>
+                        ))}
+                      </select>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => updateOrderItem(i, 'quantity', Math.max(1, item.quantity - 1))} className="w-8 h-8 rounded bg-clay text-root flex items-center justify-center active:scale-90">
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="w-8 text-center font-bold text-root text-sm">{item.quantity}</span>
+                        <button onClick={() => updateOrderItem(i, 'quantity', Math.min(v?.count || 99, item.quantity + 1))} className="w-8 h-8 rounded bg-clay text-root flex items-center justify-center active:scale-90">
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <button onClick={() => removeOrderItem(i)} className="text-ash hover:text-frost p-1"><X className="w-4 h-4" /></button>
+                    </div>
+                  );
+                })}
+                <button onClick={addOrderItem} className="text-xs font-bold text-creek hover:text-creek-dk flex items-center gap-1 mt-1">
+                  <Plus className="w-3 h-3" /> Add Item
+                </button>
+              </div>
+
+              {/* Notes */}
+              <div className="mb-4">
+                <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Notes</label>
+                <input value={orderNotes} onChange={e => setOrderNotes(e.target.value)} placeholder="Optional" className="w-full px-3 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal" />
+              </div>
+
+              {/* Total */}
+              <div className="bg-petal-lt rounded-lg p-3 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-stone-c">Items: {orderItems.filter(i => i.variety_id).length}</span>
+                  <span className="font-bold text-root text-lg">${getOrderTotal().toFixed(2)}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCreateOrder}
+                disabled={!customerName.trim() || orderItems.filter(i => i.variety_id).length === 0}
+                className="w-full py-3 rounded-xl font-bold bg-soil text-white hover:bg-root transition-colors disabled:opacity-50"
+              >
+                Create Order · ${getOrderTotal().toFixed(2)}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
