@@ -3,24 +3,51 @@
 import { useState } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { useZones } from "@/hooks/useZones";
-import { Plus, Check, MapPin, Wrench, Clock, BellRing, Sparkles, X } from "lucide-react";
+import { useInventory } from "@/hooks/useInventory";
+import { Plus, Check, MapPin, Wrench, Clock, BellRing, Sparkles, X, ListChecks } from "lucide-react";
 import { PRIORITY_COLORS } from "@/lib/constants";
 import TaskCreationModal from "@/components/admin/TaskCreationModal";
-import type { Task } from "@/lib/types";
+import type { Task, ChecklistItem } from "@/lib/types";
 import { Timestamp } from "firebase/firestore";
 import { isToday, isTomorrow, isThisWeek, addDays } from "date-fns";
+
+interface ChecklistTaskItem {
+  id: string;
+  label: string;
+  parentType: 'zone' | 'variety';
+  parentId: string;
+  parentName: string;
+  status: string;
+}
 
 export default function TasksPage() {
   const { tasks, loading, saveTask, createTask } = useTasks();
   const { zones } = useZones();
-  
+  const { varieties } = useInventory();
+
   const [priorityFilter, setPriorityFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [isCreating, setIsCreating] = useState(false);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'tasks' | 'checklists'>('tasks');
 
-  // Grouping logic
-  const filtered = tasks.filter(t => t.status === "pending").filter(t => {
+  // Gather all incomplete checklist items from zones and varieties
+  const checklistTasks: ChecklistTaskItem[] = [];
+  zones.forEach(z => {
+    (z.checklist || []).filter(c => !c.completed).forEach(c => {
+      checklistTasks.push({ id: c.id, label: c.label, parentType: 'zone', parentId: z.id, parentName: z.name, status: z.status });
+    });
+  });
+  varieties.forEach(v => {
+    (v.checklist || []).filter(c => !c.completed).forEach(c => {
+      checklistTasks.push({ id: c.id, label: c.label, parentType: 'variety', parentId: v.id, parentName: v.name, status: v.status });
+    });
+  });
+
+  // Grouping logic for main tasks
+  const filtered = tasks.filter(t => {
+    if (statusFilter && t.status !== statusFilter) return false;
     if (priorityFilter && t.priority !== priorityFilter) return false;
     if (sourceFilter && t.source !== sourceFilter) return false;
     return true;
@@ -67,24 +94,84 @@ export default function TasksPage() {
       <div className="sticky top-0 bg-cream/95 backdrop-blur z-40 px-4 pt-6 pb-4 border-b border-fence shadow-sm">
         <h1 className="font-bitter text-3xl font-bold text-root mb-4">Task Engine</h1>
         
-        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 mb-2 border-b border-fence-lt pb-3">
-          <span className="text-[10px] uppercase font-bold text-stone-c self-center mr-1 tracking-widest">Source:</span>
-          {['all', 'ai', 'manual', 'weather', 'equipment'].map(src => (
-            <button 
-              key={src}
-              onClick={() => setSourceFilter(src === 'all' ? "" : src)}
-              className={`whitespace-nowrap flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors border ${
-                (src === 'all' && !sourceFilter) || sourceFilter === src ? "bg-root text-white border-root" : "bg-white text-stone-c border-fence"
-              }`}
-            >
-              {src === 'ai' && <Sparkles className="w-3 h-3" />}
-              {src}
-            </button>
-          ))}
+        {/* View toggle */}
+        <div className="flex gap-2 mb-3">
+          <button onClick={() => setViewMode('tasks')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${viewMode === 'tasks' ? 'bg-soil text-white' : 'bg-clay text-stone-c'}`}>
+            Tasks
+          </button>
+          <button onClick={() => setViewMode('checklists')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-1.5 ${viewMode === 'checklists' ? 'bg-soil text-white' : 'bg-clay text-stone-c'}`}>
+            <ListChecks className="w-4 h-4" /> Checklists {checklistTasks.length > 0 && <span className="bg-frost text-white text-[10px] px-1.5 rounded-full">{checklistTasks.length}</span>}
+          </button>
         </div>
+
+        {viewMode === 'tasks' && (
+          <>
+            {/* Status filter */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 mb-2 border-b border-fence-lt pb-3">
+              <span className="text-[10px] uppercase font-bold text-stone-c self-center mr-1 tracking-widest">Status:</span>
+              {['all', 'pending', 'accepted', 'completed', 'dismissed', 'snoozed'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s === 'all' ? "" : s)}
+                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors border ${
+                    (s === 'all' && !statusFilter) || statusFilter === s ? "bg-root text-white border-root" : "bg-white text-stone-c border-fence"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {/* Source filter */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 mb-2 border-b border-fence-lt pb-3">
+              <span className="text-[10px] uppercase font-bold text-stone-c self-center mr-1 tracking-widest">Source:</span>
+              {['all', 'ai', 'manual', 'weather', 'equipment'].map(src => (
+                <button
+                  key={src}
+                  onClick={() => setSourceFilter(src === 'all' ? "" : src)}
+                  className={`whitespace-nowrap flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors border ${
+                    (src === 'all' && !sourceFilter) || sourceFilter === src ? "bg-root text-white border-root" : "bg-white text-stone-c border-fence"
+                  }`}
+                >
+                  {src === 'ai' && <Sparkles className="w-3 h-3" />}
+                  {src}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="p-4 flex flex-col gap-6">
+      {/* Checklists view */}
+      {viewMode === 'checklists' && (
+        <div className="p-4">
+          {checklistTasks.length === 0 ? (
+            <div className="text-center py-12">
+              <ListChecks className="w-12 h-12 text-ash mx-auto mb-3" />
+              <p className="font-bold text-root">All caught up!</p>
+              <p className="text-sm text-stone-c">No outstanding checklist items from zones or varieties.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {checklistTasks.map(ct => (
+                <div key={ct.id} className="bg-linen rounded-xl border border-fence-lt p-3 flex items-start gap-3">
+                  <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: ct.parentType === 'zone' ? '#3E7A8C' : '#C17F4E' }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-root">{ct.label}</p>
+                    <p className="text-[11px] text-stone-c mt-0.5">
+                      {ct.parentType === 'zone' ? <MapPin className="w-3 h-3 inline mr-1" /> : null}
+                      {ct.parentName} <span className="text-ash">· {ct.status}</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tasks view */}
+      <div className={`p-4 flex flex-col gap-6 ${viewMode !== 'tasks' ? 'hidden' : ''}`}>
         {Object.entries(groupedTasks).map(([group, groupTasks]) => {
           if (groupTasks.length === 0) return null;
           

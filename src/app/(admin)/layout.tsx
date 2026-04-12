@@ -39,7 +39,7 @@ function SyncIndicator() {
   }, []);
 
   return (
-    <div role="status" aria-label="Database Sync Status" className="flex items-center gap-1.5 absolute top-4 right-4 bg-cream/80 backdrop-blur px-2 py-1 rounded-full border border-fence-lt shadow-sm text-[10px] font-bold uppercase tracking-widest text-stone-c z-50">
+    <div role="status" aria-label="Database Sync Status" className="flex items-center gap-1.5 fixed bottom-[58px] left-1/2 -translate-x-1/2 bg-cream px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest text-stone-c z-[9999]">
        {!isOnline ? (
           <><WifiOff className="w-3 h-3 text-frost" /><span className="text-frost">Offline</span></>
        ) : isSyncing ? (

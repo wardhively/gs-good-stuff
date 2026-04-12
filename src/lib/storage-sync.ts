@@ -9,7 +9,7 @@ export interface PendingPhoto {
   uuid: string;
 }
 
-export async function cacheFileOffline(docId: string, blob: Blob | File, prefix: 'photo' | 'receipt' = 'photo'): Promise<string> {
+export async function cacheFileOffline(docId: string, blob: Blob | File, prefix: 'photo' | 'receipt' | 'variety' | 'zone' = 'photo'): Promise<string> {
   const uuid = crypto.randomUUID();
   const pendingUrl = `pending://${prefix}_${uuid}`;
   
@@ -32,10 +32,17 @@ export async function syncPendingFiles() {
       const payload = await get<PendingPhoto>(key as string);
       if (!payload) continue;
 
+      // Determine storage folder and Firestore collection based on prefix
+      let storageFolder: string;
+      let collectionName: string;
       const isReceipt = payload.uuid.startsWith('receipt_');
-      const storageFolder = isReceipt ? 'equipment_receipts' : 'journal_photos';
-      const collectionName = isReceipt ? 'equipment' : 'journal_entries';
-      const targetField = isReceipt ? 'maintenance_log' : 'photo_urls'; // we will handle maintenance_log carefully
+      const isVariety = payload.uuid.startsWith('variety_');
+      const isZone = payload.uuid.startsWith('zone_');
+
+      if (isReceipt) { storageFolder = 'equipment_receipts'; collectionName = 'equipment'; }
+      else if (isVariety) { storageFolder = 'variety_photos'; collectionName = 'varieties'; }
+      else if (isZone) { storageFolder = 'zone_photos'; collectionName = 'zones'; }
+      else { storageFolder = 'journal_photos'; collectionName = 'journal_entries'; }
 
       // 1. Upload to Firebase Storage
       const storageRef = ref(storage, `${storageFolder}/${payload.uuid}`);
@@ -45,21 +52,22 @@ export async function syncPendingFiles() {
       // 2. Update Firestore Document
       const docRef = doc(db, collectionName, payload.entryId);
       const docSnap = await getDoc(docRef);
-      
+
       if (docSnap.exists()) {
         const data = docSnap.data();
-        
+
         if (isReceipt && data.maintenance_log) {
-          const updatedLogs = data.maintenance_log.map((log: any) => 
+          const updatedLogs = data.maintenance_log.map((log: any) =>
             log.receipt_url === `pending://${payload.uuid}` ? { ...log, receipt_url: downloadUrl } : log
           );
           await updateDoc(docRef, { maintenance_log: updatedLogs });
-        } else if (!isReceipt && data.photo_urls) {
-           const currentUrls = data.photo_urls || [];
-           const updatedUrls = currentUrls.map((url: string) => 
-             url === `pending://${payload.uuid}` ? downloadUrl : url
-           );
-           await updateDoc(docRef, { photo_urls: updatedUrls });
+        } else {
+          // For journal, variety, and zone photos — all use photo_urls array
+          const currentUrls = data.photo_urls || [];
+          const updatedUrls = currentUrls.map((url: string) =>
+            url === `pending://${payload.uuid}` ? downloadUrl : url
+          );
+          await updateDoc(docRef, { photo_urls: updatedUrls });
         }
       }
 

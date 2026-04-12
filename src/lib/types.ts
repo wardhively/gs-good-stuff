@@ -1,6 +1,17 @@
 import { Timestamp } from "firebase/firestore";
 import { StatusEnum } from "./constants";
 
+export interface ChecklistItem {
+  id: string;
+  label: string;
+  completed: boolean;
+  completed_at?: Timestamp;
+  due_date?: string; // ISO date string "YYYY-MM-DD"
+  parent_type?: 'zone' | 'variety';
+  parent_id?: string;
+  parent_name?: string;
+}
+
 export interface Zone {
   id: string;
   name: string;
@@ -11,6 +22,8 @@ export interface Zone {
   sun_exposure?: 'full' | 'partial' | 'shade';
   frost_risk?: 'low' | 'medium' | 'high';
   soil_notes?: string;
+  photo_urls?: string[];
+  checklist?: ChecklistItem[];
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -35,6 +48,7 @@ export interface Variety {
   season?: string;
   photo_urls?: string[];
   notes?: string;
+  checklist?: ChecklistItem[];
   status_history?: Array<{ status: StatusEnum; timestamp: Timestamp; note?: string }>;
   created_at: Timestamp;
   updated_at: Timestamp;

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useInventory } from "@/hooks/useInventory";
+import { useZones } from "@/hooks/useZones";
 import { STATUS_COLORS, StatusEnum } from "@/lib/constants";
 import { Search, Plus, ListChecks, Database } from "lucide-react";
 import VarietyDetailSheet from "@/components/admin/VarietyDetailSheet";
@@ -10,6 +11,7 @@ import { advanceVarietyStatus, getNextStatus } from "@/lib/inventory-utils";
 
 export default function InventoryPage() {
   const { varieties, loading, saveVariety, bulkUpdateVarieties, createVariety } = useInventory();
+  const { zones } = useZones();
   
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusEnum | "">("");
@@ -17,6 +19,8 @@ export default function InventoryPage() {
   const [selectedVariety, setSelectedVariety] = useState<Variety | null>(null);
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [showCreate, setShowCreate] = useState(false);
+  const [newVariety, setNewVariety] = useState({ name: '', count: 1, price: 0, zone_id: '', bloom_form: '', bloom_size: '', height: '', season: '', grade: '', status: 'stored' as const });
 
   // Filter varieties
   const filtered = varieties.filter(v => {
@@ -154,7 +158,7 @@ export default function InventoryPage() {
       {!isBulkMode && (
         <button 
           className="fixed bottom-24 right-6 w-14 h-14 bg-petal text-white rounded-full shadow-[0_4px_14px_rgba(193,127,78,0.5)] flex justify-center items-center hover:bg-petal-dk hover:scale-105 active:scale-95 transition-all z-40"
-          onClick={() => { /* Create logic would spawn modal here */ }}
+          onClick={() => setShowCreate(true)}
         >
           <Plus className="w-6 h-6" />
         </button>
@@ -177,13 +181,70 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Detail Modal */}
       {selectedVariety && (
-        <VarietyDetailSheet 
-          variety={selectedVariety} 
-          onClose={() => setSelectedVariety(null)} 
-          onSave={saveVariety} 
+        <VarietyDetailSheet
+          variety={selectedVariety}
+          onClose={() => setSelectedVariety(null)}
+          onSave={saveVariety}
         />
+      )}
+
+      {/* Create Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-[2000] flex flex-col justify-end">
+          <div className="absolute inset-0 bg-root/40 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
+          <div className="relative bg-linen rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.2)] max-h-[85vh] overflow-y-auto">
+            <div className="w-12 h-1 bg-fence rounded-full mx-auto mt-3 mb-2" />
+            <div className="px-6 pb-6">
+              <h2 className="font-bitter text-xl font-bold text-root mb-4">New Variety</h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Name *</label>
+                  <input value={newVariety.name} onChange={e => setNewVariety(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal" placeholder="Café au Lait" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Count</label>
+                    <input type="number" value={newVariety.count} onChange={e => setNewVariety(p => ({ ...p, count: parseInt(e.target.value) || 0 }))} className="w-full px-3 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Price ($)</label>
+                    <input type="number" step="0.01" value={newVariety.price} onChange={e => setNewVariety(p => ({ ...p, price: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Bloom Form</label>
+                    <input value={newVariety.bloom_form} onChange={e => setNewVariety(p => ({ ...p, bloom_form: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal" placeholder="Dinnerplate" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Bloom Size</label>
+                    <input value={newVariety.bloom_size} onChange={e => setNewVariety(p => ({ ...p, bloom_size: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal" placeholder="AA" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-stone-c tracking-wider font-bold block mb-1">Zone</label>
+                  <select value={newVariety.zone_id} onChange={e => setNewVariety(p => ({ ...p, zone_id: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-fence bg-cream text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal">
+                    <option value="">Unassigned</option>
+                    {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+                  </select>
+                </div>
+                <button
+                  disabled={!newVariety.name}
+                  onClick={async () => {
+                    await createVariety(newVariety as any);
+                    setShowCreate(false);
+                    setNewVariety({ name: '', count: 1, price: 0, zone_id: '', bloom_form: '', bloom_size: '', height: '', season: '', grade: '', status: 'stored' as const });
+                  }}
+                  className="w-full py-3 rounded-xl font-bold bg-soil text-white hover:bg-root transition-colors disabled:opacity-50 mt-2"
+                >
+                  Create Variety
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

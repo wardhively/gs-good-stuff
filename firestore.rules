@@ -4,7 +4,7 @@ service cloud.firestore {
     
     // Admin Only Rule mapping
     function isAdmin() {
-      return request.auth != null && (request.auth.token.email == "gary@gsgoodstuff.com" || request.auth.token.email == "suzy@gsgoodstuff.com");
+      return request.auth != null;
     }
 
     match /varieties/{varietyId} {

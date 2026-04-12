@@ -11,8 +11,8 @@ export enum StatusEnum {
 }
 
 export const ADDISON_COORDINATES = {
-  lat: 42.10,
-  lng: -77.23,
+  lat: 42.04461541863469,
+  lng: -77.32801550272669,
   elevation_ft: 1020,
   zone: '5b',
 };
@@ -43,6 +43,29 @@ export const FIVE_YEAR_PLAN = {
   "2028": { production: 10000, revenue: 54000 },
   "2029": { production: 32000, revenue: 160000 },
   "2030": { production: 82432, revenue: 480000 },
+};
+
+// Predefined checklist templates
+export const ZONE_CHECKLIST_DEFAULTS = [
+  "Soil test completed",
+  "Amendments applied",
+  "Beds shaped and prepped",
+  "Irrigation installed",
+  "Mulch applied",
+  "Deer fence checked",
+  "Drainage assessed",
+  "Weed barrier laid",
+];
+
+export const VARIETY_CHECKLIST_DEFAULTS: Record<string, string[]> = {
+  [StatusEnum.STORED]: ["Inspect for rot/mold", "Label bags", "Verify cooler temp 38-48°F"],
+  [StatusEnum.JUGGED]: ["Prep milk jugs", "Add potting mix", "Place in warm area", "Mist daily"],
+  [StatusEnum.PLANTED]: ["Dig hole 6\" deep", "Add bone meal", "Water in thoroughly", "Mark with stake"],
+  [StatusEnum.GROWING]: ["Check for pests", "Pinch center bud", "Stake tall varieties", "Deep water weekly"],
+  [StatusEnum.DUG]: ["Cut stems to 4\"", "Rinse clumps", "Cure in dry area 2 days"],
+  [StatusEnum.DIVIDED]: ["Separate tubers with eye", "Dust with sulfur", "Label each division", "Store in cooler"],
+  [StatusEnum.LISTED]: ["Photograph tuber", "Write description", "Set price", "Upload to store"],
+  [StatusEnum.SOLD]: ["Pull from inventory", "Pack for shipping", "Print label", "Update tracking"],
 };
 
 export const SOCIAL = {

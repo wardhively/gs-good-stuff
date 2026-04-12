@@ -114,14 +114,17 @@ export default function BusinessView() {
            <h3 className="font-bold text-root mb-4 flex items-center gap-2"><CheckSquare className="w-4 h-4"/> Key Milestones</h3>
            <div className="space-y-3">
               {activePlan.milestones.map((m, i) => (
-                <div key={i} className="flex flex-row items-center gap-3">
-                  <div 
-                    onClick={() => handleMilestoneToggle(i)}
-                    className={`w-6 h-6 rounded-md border-2 flex justify-center items-center cursor-pointer transition-colors ${m.completed ? 'bg-leaf border-leaf text-white' : 'border-fence-lt bg-transparent'}`}
+                <div key={i} className="flex flex-row items-center gap-3 py-1">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleMilestoneToggle(i); }}
+                    className={`w-7 h-7 rounded-md border-2 flex justify-center items-center cursor-pointer transition-colors active:scale-90 ${m.completed ? 'bg-leaf border-leaf text-white' : 'border-fence-lt bg-transparent hover:border-stone-c active:border-leaf'}`}
                   >
-                     {m.completed && <CheckSquare className="w-3 h-3" />}
-                  </div>
-                  <span className={`text-sm font-bold font-dm-sans ${m.completed ? 'text-stone-c line-through' : 'text-root'}`}>{m.title}</span>
+                     {m.completed && <CheckSquare className="w-4 h-4" />}
+                  </button>
+                  <span
+                    onClick={() => handleMilestoneToggle(i)}
+                    className={`text-sm font-bold font-dm-sans cursor-pointer select-none ${m.completed ? 'text-stone-c line-through' : 'text-root'}`}
+                  >{m.title}</span>
                 </div>
               ))}
            </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { onSnapshot } from "firebase/firestore";
+import { onSnapshot, doc, setDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { collections } from "@/lib/firestore";
 import type { Zone } from "@/lib/types";
 
@@ -30,5 +30,25 @@ export function useZones() {
     return () => unsubscribe();
   }, []);
 
-  return { zones, loading, error };
+  const createZone = async (data: Omit<Zone, "id" | "created_at" | "updated_at">) => {
+    const newRef = doc(collections.zones);
+    await setDoc(newRef, {
+      ...data,
+      id: newRef.id,
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now(),
+    });
+    return newRef.id;
+  };
+
+  const saveZone = async (id: string, updates: Partial<Zone>) => {
+    const ref = doc(collections.zones, id);
+    await setDoc(ref, { ...updates, updated_at: Timestamp.now() }, { merge: true });
+  };
+
+  const deleteZone = async (id: string) => {
+    await deleteDoc(doc(collections.zones, id));
+  };
+
+  return { zones, loading, error, createZone, saveZone, deleteZone };
 }
