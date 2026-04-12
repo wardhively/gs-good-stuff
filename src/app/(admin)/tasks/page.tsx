@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { useZones } from "@/hooks/useZones";
 import { useInventory } from "@/hooks/useInventory";
-import { Plus, Check, MapPin, Wrench, Clock, BellRing, Sparkles, X, ListChecks, Calendar, Pencil } from "lucide-react";
+import { Plus, Check, MapPin, Wrench, Clock, BellRing, Sparkles, X, ListChecks, Calendar, Pencil, Trash2 } from "lucide-react";
 import { PRIORITY_COLORS } from "@/lib/constants";
 import TaskCreationModal from "@/components/admin/TaskCreationModal";
 import type { Task, ChecklistItem } from "@/lib/types";
@@ -18,12 +18,14 @@ interface ChecklistTaskItem {
   parentId: string;
   parentName: string;
   status: string;
+  due_date?: string;
+  completed: boolean;
 }
 
 export default function TasksPage() {
   const { tasks, loading, saveTask, createTask, deleteTask } = useTasks();
-  const { zones } = useZones();
-  const { varieties } = useInventory();
+  const { zones, saveZone } = useZones();
+  const { varieties, saveVariety } = useInventory();
 
   const [priorityFilter, setPriorityFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
@@ -40,12 +42,12 @@ export default function TasksPage() {
   const checklistTasks: ChecklistTaskItem[] = [];
   zones.forEach(z => {
     (z.checklist || []).filter(c => !c.completed).forEach(c => {
-      checklistTasks.push({ id: c.id, label: c.label, parentType: 'zone', parentId: z.id, parentName: z.name, status: z.status });
+      checklistTasks.push({ id: c.id, label: c.label, parentType: 'zone', parentId: z.id, parentName: z.name, status: z.status, due_date: c.due_date, completed: c.completed });
     });
   });
   varieties.forEach(v => {
     (v.checklist || []).filter(c => !c.completed).forEach(c => {
-      checklistTasks.push({ id: c.id, label: c.label, parentType: 'variety', parentId: v.id, parentName: v.name, status: v.status });
+      checklistTasks.push({ id: c.id, label: c.label, parentType: 'variety', parentId: v.id, parentName: v.name, status: v.status, due_date: c.due_date, completed: c.completed });
     });
   });
 
@@ -157,18 +159,93 @@ export default function TasksPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {checklistTasks.map(ct => (
-                <div key={ct.id} className="bg-linen rounded-xl border border-fence-lt p-3 flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: ct.parentType === 'zone' ? '#3E7A8C' : '#C17F4E' }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-root">{ct.label}</p>
-                    <p className="text-[11px] text-stone-c mt-0.5">
-                      {ct.parentType === 'zone' ? <MapPin className="w-3 h-3 inline mr-1" /> : null}
-                      {ct.parentName} <span className="text-ash">· {ct.status}</span>
-                    </p>
+              {checklistTasks.map(ct => {
+                const toggleChecklistItem = async () => {
+                  const collection = ct.parentType === 'zone' ? zones : varieties;
+                  const parent = collection.find((p: any) => p.id === ct.parentId);
+                  if (!parent) return;
+                  const checklist = ((parent as any).checklist || []).map((c: any) =>
+                    c.id === ct.id ? { ...c, completed: !c.completed } : c
+                  );
+                  if (ct.parentType === 'zone') await saveZone(ct.parentId, { checklist } as any);
+                  else await saveVariety(ct.parentId, { checklist } as any);
+                };
+
+                const setChecklistDueDate = async (newDate: string) => {
+                  const collection = ct.parentType === 'zone' ? zones : varieties;
+                  const parent = collection.find((p: any) => p.id === ct.parentId);
+                  if (!parent) return;
+                  const checklist = ((parent as any).checklist || []).map((c: any) => {
+                    if (c.id !== ct.id) return c;
+                    const updated = { ...c };
+                    if (newDate) updated.due_date = newDate;
+                    else delete updated.due_date;
+                    return updated;
+                  });
+                  if (ct.parentType === 'zone') await saveZone(ct.parentId, { checklist } as any);
+                  else await saveVariety(ct.parentId, { checklist } as any);
+                };
+
+                const deleteChecklistItem = async () => {
+                  if (!window.confirm(`Delete "${ct.label}"?`)) return;
+                  const collection = ct.parentType === 'zone' ? zones : varieties;
+                  const parent = collection.find((p: any) => p.id === ct.parentId);
+                  if (!parent) return;
+                  const checklist = ((parent as any).checklist || []).filter((c: any) => c.id !== ct.id);
+                  if (ct.parentType === 'zone') await saveZone(ct.parentId, { checklist } as any);
+                  else await saveVariety(ct.parentId, { checklist } as any);
+                };
+
+                const isExpanded = expandedTask === `cl-${ct.id}`;
+
+                return (
+                  <div key={ct.id} className={`bg-linen rounded-xl border p-3 transition-colors ${ct.completed ? 'border-leaf/30 opacity-60' : 'border-fence-lt'}`}>
+                    <div className="flex items-start gap-3" onClick={() => setExpandedTask(isExpanded ? null : `cl-${ct.id}`)}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleChecklistItem(); }}
+                        className={`w-6 h-6 rounded-md flex-shrink-0 border-2 flex items-center justify-center mt-0.5 active:scale-90 transition-colors ${
+                          ct.completed ? 'bg-leaf border-leaf text-white' : 'border-fence bg-linen hover:border-stone-c'
+                        }`}
+                      >
+                        {ct.completed && <Check className="w-3 h-3" />}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${ct.completed ? 'line-through text-ash' : 'text-root'}`}>{ct.label}</p>
+                        <p className="text-[11px] text-stone-c mt-0.5">
+                          {ct.parentType === 'zone' ? <MapPin className="w-3 h-3 inline mr-1" /> : null}
+                          {ct.parentName} <span className="text-ash">· {ct.status}</span>
+                          {ct.due_date && <span className="text-creek ml-2">· {ct.due_date}</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t border-fence-lt space-y-2" onClick={e => e.stopPropagation()}>
+                        {/* Due date */}
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-stone-c" />
+                          <input
+                            type="date"
+                            value={ct.due_date || ''}
+                            onChange={e => setChecklistDueDate(e.target.value)}
+                            className="px-2 py-1 text-xs rounded border border-fence bg-cream text-root focus:outline-none focus:ring-2 focus:ring-petal"
+                          />
+                          {ct.due_date && <button onClick={() => setChecklistDueDate('')} className="text-[10px] text-frost font-bold">Clear</button>}
+                        </div>
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <button onClick={toggleChecklistItem} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${ct.completed ? 'bg-bloom-lt text-bloom' : 'bg-leaf text-white'}`}>
+                            {ct.completed ? 'Reopen' : 'Complete'}
+                          </button>
+                          <button onClick={deleteChecklistItem} className="py-2 px-3 rounded-lg text-xs font-bold border border-frost-lt text-frost hover:bg-frost-lt transition-colors flex items-center gap-1">
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -72,21 +72,23 @@ export default function SettingsView() {
             <div className="p-4 space-y-4 font-dm-sans">
                <div>
                   <label className="text-xs font-bold text-stone-c uppercase tracking-widest block mb-1">Last Frost Date (Spring)</label>
-                  <input 
-                     type="text" 
+                  <input
+                     type="date"
                      className="w-full p-3 bg-white border border-fence rounded-lg font-bold text-root"
-                     value={settings.last_frost_date}
-                     onChange={e => saveSettings({ last_frost_date: e.target.value })}
+                     value={settings.last_frost_date ? `2026-${settings.last_frost_date}` : ''}
+                     onChange={e => { const v = e.target.value; if (v) saveSettings({ last_frost_date: v.substring(5) }); }}
                   />
+                  <p className="text-[10px] text-ash mt-1">Currently: {settings.last_frost_date || 'Not set'}</p>
                </div>
                <div>
                   <label className="text-xs font-bold text-stone-c uppercase tracking-widest block mb-1">First Frost Date (Fall)</label>
-                  <input 
-                     type="text" 
+                  <input
+                     type="date"
                      className="w-full p-3 bg-white border border-fence rounded-lg font-bold text-root"
-                     value={settings.first_frost_date}
-                     onChange={e => saveSettings({ first_frost_date: e.target.value })}
+                     value={settings.first_frost_date ? `2026-${settings.first_frost_date}` : ''}
+                     onChange={e => { const v = e.target.value; if (v) saveSettings({ first_frost_date: v.substring(5) }); }}
                   />
+                  <p className="text-[10px] text-ash mt-1">Currently: {settings.first_frost_date || 'Not set'}</p>
                </div>
             </div>
          </div>
