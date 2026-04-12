@@ -1,10 +1,11 @@
 import { MetadataRoute } from 'next';
-import { adminDb } from '@/lib/firebase-admin';
+
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'gs-good-stuff';
+const BASE_API = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://gsgoodstuff.com';
 
-  // Base routes natively tracking core layouts
   const routes: MetadataRoute.Sitemap = [
     { url: `${baseUrl}`, lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
     { url: `${baseUrl}/about`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
@@ -13,37 +14,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    // Collect active varieties
-    const vSnap = await adminDb.collection("varieties")
-       .where("status", "==", "listed")
-       .where("count", ">", 0)
-       .get();
-    
-    vSnap.docs.forEach(doc => {
-       routes.push({
-          url: `${baseUrl}/shop/${doc.id}`,
-          lastModified: doc.data().updated_at ? new Date(doc.data().updated_at.seconds * 1000) : new Date(),
-          changeFrequency: 'always',
-          priority: 0.7
-       });
-    });
+    // Varieties
+    const vRes = await fetch(`${BASE_API}/varieties`, { cache: 'no-store' });
+    if (vRes.ok) {
+      const vData = await vRes.json();
+      (vData.documents || []).forEach((doc: any) => {
+        const fields = doc.fields || {};
+        const status = fields.status?.stringValue;
+        const count = parseInt(fields.count?.integerValue || '0');
+        if (status === 'listed' && count > 0) {
+          routes.push({ url: `${baseUrl}/shop/${doc.name.split('/').pop()}`, lastModified: new Date(), changeFrequency: 'always' as const, priority: 0.7 });
+        }
+      });
+    }
 
-    // Collect public journals
-    const jSnap = await adminDb.collection("journal_entries")
-       .where("is_public", "==", true)
-       .get();
-    
-    jSnap.docs.forEach(doc => {
-       routes.push({
-          url: `${baseUrl}/blog/${doc.id}`,
-          lastModified: doc.data().updated_at ? new Date(doc.data().updated_at.seconds * 1000) : new Date(),
-          changeFrequency: 'never', // archival
-          priority: 0.6
-       });
-    });
-
+    // Public journal entries
+    const jRes = await fetch(`${BASE_API}/journal_entries`, { cache: 'no-store' });
+    if (jRes.ok) {
+      const jData = await jRes.json();
+      (jData.documents || []).forEach((doc: any) => {
+        const fields = doc.fields || {};
+        if (fields.is_public?.booleanValue) {
+          routes.push({ url: `${baseUrl}/blog/${doc.name.split('/').pop()}`, lastModified: new Date(), changeFrequency: 'never' as const, priority: 0.6 });
+        }
+      });
+    }
   } catch (err) {
-    console.error("Sitemap Firebase traversal failed natively:", err);
+    console.error("Sitemap fetch failed:", err);
   }
 
   return routes;
