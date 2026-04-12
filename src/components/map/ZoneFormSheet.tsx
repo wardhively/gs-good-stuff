@@ -74,7 +74,7 @@ export default function ZoneFormSheet({ coordinates, existingZone, onSave, onCan
 
     try {
       if (existingZone) {
-        await saveZone(existingZone.id, zoneData);
+        await saveZone(existingZone.id, zoneData as any);
       } else {
         await createZone(zoneData as any);
       }
