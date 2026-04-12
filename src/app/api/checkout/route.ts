@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
-      automatic_tax: { enabled: true },
+      // automatic_tax: { enabled: true }, // Enable after configuring Stripe Tax at dashboard.stripe.com/settings/tax
       shipping_options: shippingOptions as any,
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cart?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cart?canceled=true`,
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe Session Error", err);
-    return NextResponse.json({ error: "Checkout error" }, { status: 500 });
+    console.error("Stripe Session Error", err?.message || err);
+    return NextResponse.json({ error: err?.message || "Checkout error" }, { status: 500 });
   }
 }
