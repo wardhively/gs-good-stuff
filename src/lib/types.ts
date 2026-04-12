@@ -158,6 +158,22 @@ export interface WeatherLog {
   frost_alert: boolean;
 }
 
+export type SiteFeatureType = 'walkway' | 'irrigation' | 'driveway' | 'fence' | 'building' | 'wet_area' | 'well' | 'hazard' | 'steep_grade' | 'custom';
+export type SiteGeometryType = 'polygon' | 'line' | 'point';
+
+export interface SiteFeature {
+  id: string;
+  name: string;
+  type: SiteFeatureType;
+  geometry_type: SiteGeometryType;
+  geometry: string; // JSON stringified GeoJSON
+  color?: string;
+  icon?: string;
+  notes?: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
 export interface BusinessPlan {
   id: string;
   year: number;

@@ -68,6 +68,20 @@ export const VARIETY_CHECKLIST_DEFAULTS: Record<string, string[]> = {
   [StatusEnum.SOLD]: ["Pull from inventory", "Pack for shipping", "Print label", "Update tracking"],
 };
 
+// Site feature type defaults
+export const SITE_FEATURE_TYPES: Record<string, { label: string; geometry: 'polygon' | 'line' | 'point'; color: string; icon: string }> = {
+  walkway: { label: 'Walkway', geometry: 'polygon', color: '#A99D8F', icon: 'Footprints' },
+  irrigation: { label: 'Irrigation', geometry: 'line', color: '#3E7A8C', icon: 'Droplets' },
+  driveway: { label: 'Driveway', geometry: 'polygon', color: '#8B7D6B', icon: 'Car' },
+  fence: { label: 'Fence', geometry: 'line', color: '#4A3728', icon: 'Fence' },
+  building: { label: 'Building', geometry: 'polygon', color: '#332518', icon: 'Home' },
+  wet_area: { label: 'Wet Area', geometry: 'polygon', color: '#3E7A8C', icon: 'Waves' },
+  well: { label: 'Well Point', geometry: 'point', color: '#3E7A8C', icon: 'Droplet' },
+  hazard: { label: 'Hazard', geometry: 'point', color: '#B94A42', icon: 'AlertTriangle' },
+  steep_grade: { label: 'Steep Grade', geometry: 'polygon', color: '#CB9B2D', icon: 'TrendingUp' },
+  custom: { label: 'Custom', geometry: 'polygon', color: '#C17F4E', icon: 'MapPin' },
+};
+
 export const SOCIAL = {
   instagram: "https://instagram.com/gsgoodstuff",
   tiktok: "https://tiktok.com/@gsgoodstuff",
