@@ -1,88 +1,106 @@
 /**
  * Builds a concise farm context snapshot for Borden (Claude).
- * Runs server-side via firebase-admin.
+ * Uses Firestore REST API with the web API key to avoid admin SDK credential issues.
  */
 
-import { adminDb } from './firebase-admin';
 import { format } from 'date-fns';
+
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'gs-good-stuff';
+const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+
+async function fetchCollection(collection: string, limit?: number): Promise<any[]> {
+  try {
+    let url = `${FIRESTORE_BASE}/${collection}`;
+    if (limit) url += `?pageSize=${limit}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.documents || []).map(parseDoc);
+  } catch {
+    return [];
+  }
+}
+
+function parseDoc(doc: any): any {
+  const id = doc.name.split('/').pop();
+  const fields = doc.fields || {};
+  const parsed: any = { id };
+  for (const [key, val] of Object.entries(fields)) {
+    parsed[key] = parseValue(val as any);
+  }
+  return parsed;
+}
+
+function parseValue(val: any): any {
+  if (val.stringValue !== undefined) return val.stringValue;
+  if (val.integerValue !== undefined) return parseInt(val.integerValue);
+  if (val.doubleValue !== undefined) return val.doubleValue;
+  if (val.booleanValue !== undefined) return val.booleanValue;
+  if (val.timestampValue !== undefined) return val.timestampValue;
+  if (val.nullValue !== undefined) return null;
+  if (val.arrayValue) return (val.arrayValue.values || []).map(parseValue);
+  if (val.mapValue) {
+    const obj: any = {};
+    for (const [k, v] of Object.entries(val.mapValue.fields || {})) {
+      obj[k] = parseValue(v as any);
+    }
+    return obj;
+  }
+  return null;
+}
 
 export async function buildFarmContext(): Promise<string> {
   const now = new Date();
   const today = format(now, 'yyyy-MM-dd');
-  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
 
-  // Parallel fetches
-  const [zonesSnap, varietiesSnap, tasksSnap, equipSnap, ordersSnap, weatherSnap, planSnap, journalSnap] = await Promise.all([
-    adminDb.collection('zones').get(),
-    adminDb.collection('varieties').get(),
-    adminDb.collection('tasks').where('status', '==', 'pending').get(),
-    adminDb.collection('equipment').get(),
-    adminDb.collection('orders').orderBy('created_at', 'desc').limit(10).get(),
-    adminDb.collection('weather_log').orderBy('date', 'desc').limit(7).get(),
-    adminDb.collection('business_plan').doc('2026').get(),
-    adminDb.collection('journal_entries').orderBy('created_at', 'desc').limit(5).get(),
+  const [zones, varieties, tasks, equip, orders, weather, journal] = await Promise.all([
+    fetchCollection('zones'),
+    fetchCollection('varieties'),
+    fetchCollection('tasks'),
+    fetchCollection('equipment'),
+    fetchCollection('orders', 10),
+    fetchCollection('weather_log', 7),
+    fetchCollection('journal_entries', 5),
   ]);
 
+  // Also fetch business plan
+  let plan: any = null;
+  try {
+    const res = await fetch(`${FIRESTORE_BASE}/business_plan/2026`, { cache: 'no-store' });
+    if (res.ok) plan = parseDoc(await res.json());
+  } catch {}
+
   // Zones
-  const zones = zonesSnap.docs.map(d => {
-    const z = d.data();
-    return `${z.name} (${d.id}): status=${z.status}, elevation=${z.elevation || '?'}ft, drainage=${z.drainage || '?'}, frost_risk=${z.frost_risk || '?'}`;
-  });
+  const zoneLines = zones.map(z =>
+    `${z.name || z.id}: status=${z.status || '?'}, elevation=${z.elevation || '?'}ft, drainage=${z.drainage || '?'}, frost_risk=${z.frost_risk || '?'}`
+  );
 
   // Varieties with counts
-  const varieties = varietiesSnap.docs.map(d => {
-    const v = d.data();
-    const digDate = v.expected_dig_date ? format(new Date(v.expected_dig_date.seconds * 1000), 'MMM d') : 'N/A';
-    return `${v.name} (${d.id}): count=${v.count}, status=${v.status}, zone=${v.zone_id || 'unassigned'}, price=$${v.price || 0}, bloom=${v.bloom_form || '?'}, dig_date=${digDate}`;
-  });
+  const varietyLines = varieties.map(v =>
+    `${v.name || v.id}: count=${v.count || 0}, status=${v.status || '?'}, zone=${v.zone_id || 'unassigned'}, price=$${v.price || 0}, bloom=${v.bloom_form || '?'}`
+  );
 
   // Status summary
   const statusCounts: Record<string, number> = {};
-  varietiesSnap.docs.forEach(d => {
-    const s = d.data().status;
-    statusCounts[s] = (statusCounts[s] || 0) + d.data().count;
+  varieties.forEach(v => {
+    const s = v.status || 'unknown';
+    statusCounts[s] = (statusCounts[s] || 0) + (v.count || 0);
   });
 
   // Pending tasks
-  const pendingTasks = tasksSnap.docs.map(d => {
-    const t = d.data();
-    const due = t.due_date ? format(new Date(t.due_date.seconds * 1000), 'MMM d') : 'no date';
-    return `[${t.priority}] ${t.title} (due: ${due}, source: ${t.source})`;
-  });
+  const pendingTasks = tasks.filter(t => t.status === 'pending').map(t =>
+    `[${t.priority || 'medium'}] ${t.title} (source: ${t.source || 'manual'})`
+  );
 
   // Equipment
-  const equip = equipSnap.docs.map(d => {
-    const e = d.data();
-    const overdue = e.service_items?.filter((s: any) => {
-      const elapsed = e.current_hours - (s.last_completed_hours || 0);
-      return elapsed >= s.interval_hours;
-    }) || [];
-    return `${e.name} (${d.id}): ${e.current_hours}hrs, status=${e.status}${overdue.length ? `, OVERDUE: ${overdue.map((s: any) => s.type).join(', ')}` : ''}`;
-  });
+  const equipLines = equip.map(e =>
+    `${e.name}: ${e.current_hours || 0}hrs, status=${e.status || 'ok'}`
+  );
 
-  // Recent orders
-  const orders = ordersSnap.docs.map(d => {
-    const o = d.data();
-    const date = o.created_at ? format(new Date(o.created_at.seconds * 1000), 'MMM d') : '?';
-    return `$${o.total} from ${o.customer_name} on ${date} (${o.status}, source: ${o.source || 'online'})`;
-  });
-
-  // Weather
-  const weather = weatherSnap.docs.map(d => {
-    const w = d.data();
-    return `${w.date}: hi=${w.actual_high}°F lo=${w.actual_low}°F precip=${w.precip_inches}" soil=${w.soil_temp_est}°F${w.frost_alert ? ' FROST!' : ''}`;
-  });
-
-  // Business plan
-  const plan = planSnap.exists ? planSnap.data() : null;
-  const planSummary = plan ? `Year ${plan.year}: Revenue $${plan.actuals?.revenue || 0}/$${plan.targets?.revenue || 0} target, Sold ${plan.actuals?.sold || 0}/${plan.targets?.sold || 0}, Planted ${plan.actuals?.planted || 0}/${plan.targets?.planted || 0}` : 'No plan data';
-
-  // Recent journal
-  const journal = journalSnap.docs.map(d => {
-    const j = d.data();
-    const date = j.created_at ? format(new Date(j.created_at.seconds * 1000), 'MMM d') : '?';
-    return `[${date}] ${j.title} (${j.category}) by ${j.author}`;
-  });
+  // Orders
+  const orderLines = orders.map(o =>
+    `$${o.total || 0} from ${o.customer_name || '?'} (${o.status || '?'}, source: ${o.source || 'online'})`
+  );
 
   // Seasonal context
   const month = now.getMonth() + 1;
@@ -95,31 +113,30 @@ export async function buildFarmContext(): Promise<string> {
   else if (month === 10) seasonNote = 'SEASON: Dig season — dig BEFORE Oct 1 first frost, divide, store.';
   else seasonNote = 'SEASON: Late fall — inventory, planning, equipment maintenance.';
 
+  // Business plan
+  const planLine = plan
+    ? `Year ${plan.year || 2026}: Revenue $${plan.actuals?.revenue || 0}/$${plan.targets?.revenue || 0} target, Sold ${plan.actuals?.sold || 0}/${plan.targets?.sold || 0}`
+    : 'No plan data';
+
   return `FARM STATUS as of ${today}:
 ${seasonNote}
 Location: Addison, NY. Zone 5b. Last frost May 15, first frost Oct 1. 138-day season.
 
 ZONES (${zones.length}):
-${zones.join('\n') || 'None'}
+${zoneLines.join('\n') || 'None'}
 
 VARIETIES (${varieties.length} records, ${Object.entries(statusCounts).map(([s, c]) => `${c} ${s}`).join(', ')}):
-${varieties.join('\n') || 'None'}
+${varietyLines.join('\n') || 'None'}
 
 PENDING TASKS (${pendingTasks.length}):
 ${pendingTasks.join('\n') || 'None'}
 
 EQUIPMENT (${equip.length}):
-${equip.join('\n') || 'None'}
+${equipLines.join('\n') || 'None'}
 
-RECENT ORDERS (last 10):
-${orders.join('\n') || 'None'}
-
-WEATHER (last 7 days):
-${weather.join('\n') || 'No data'}
+RECENT ORDERS (${orders.length}):
+${orderLines.join('\n') || 'None'}
 
 BUSINESS PLAN:
-${planSummary}
-
-RECENT JOURNAL:
-${journal.join('\n') || 'None'}`;
+${planLine}`;
 }

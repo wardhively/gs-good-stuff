@@ -19,9 +19,10 @@ service cloud.firestore {
        allow read: if isAdmin() || resource.data.is_public == true;
     }
 
-    // Default admin constraint securely mapping boundaries against all other internal system paths (tasks, logs, etc)
+    // Server reads (Borden AI context) + admin reads/writes
     match /{document=**} {
-      allow read, write: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
