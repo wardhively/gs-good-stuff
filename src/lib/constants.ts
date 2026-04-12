@@ -84,6 +84,17 @@ export const SITE_FEATURE_TYPES: Record<string, { label: string; geometry: 'poly
   custom: { label: 'Custom', geometry: 'polygon', color: '#C17F4E', icon: 'MapPin' },
 };
 
+export const EQUIPMENT_CHECKLIST_DEFAULTS = [
+  "Check oil level",
+  "Inspect air filter",
+  "Check tire pressure",
+  "Grease fittings",
+  "Test safety switches",
+  "Inspect belts and hoses",
+  "Clean radiator screen",
+  "Check hydraulic fluid",
+];
+
 export const SOCIAL = {
   instagram: "https://instagram.com/gsgoodstuff",
   tiktok: "https://tiktok.com/@gsgoodstuff",

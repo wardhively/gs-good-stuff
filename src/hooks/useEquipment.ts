@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { onSnapshot, doc, setDoc, Timestamp, orderBy, query } from "firebase/firestore";
+import { onSnapshot, doc, setDoc, deleteDoc, Timestamp, orderBy, query } from "firebase/firestore";
 import { collections } from "@/lib/firestore";
 import type { Equipment } from "@/lib/types";
 
@@ -112,5 +112,9 @@ export function useEquipment() {
     }
   };
 
-  return { equipment, loading, error, saveEquipment, createEquipment, logMaintenance };
+  const deleteEquipment = async (id: string) => {
+    await deleteDoc(doc(collections.equipment, id));
+  };
+
+  return { equipment, loading, error, saveEquipment, createEquipment, deleteEquipment, logMaintenance };
 }

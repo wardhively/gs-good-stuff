@@ -113,6 +113,7 @@ export interface Equipment {
     receipt_url?: string;
   }>;
   status: 'ok' | 'due_soon' | 'overdue';
+  checklist?: ChecklistItem[];
   updated_at: Timestamp;
 }
 
