@@ -3,7 +3,7 @@
 import { useAuth } from "@/lib/auth";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Map, Box, CheckSquare, BookOpen, MoreHorizontal, Wifi, WifiOff, CloudSnow } from "lucide-react";
+import { Map, Box, CheckSquare, BookOpen, MoreHorizontal, Wifi, WifiOff, CloudSnow, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { waitForPendingWrites } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -73,8 +73,8 @@ export default function AdminLayout({
   const tabs = [
     { label: "Map", icon: Map, href: "/map" },
     { label: "Inventory", icon: Box, href: "/inventory" },
+    { label: "Borden", icon: Sparkles, href: "/assistant" },
     { label: "Tasks", icon: CheckSquare, href: "/tasks" },
-    { label: "Journal", icon: BookOpen, href: "/journal" },
     { label: "More", icon: MoreHorizontal, href: "/more" },
   ];
 

@@ -175,6 +175,21 @@ export interface SiteFeature {
   updated_at: Timestamp;
 }
 
+export interface AssistantMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  actions_taken?: Array<{ tool: string; input: any; result: string }>;
+  created_at: Timestamp;
+}
+
+export interface AssistantConversation {
+  id: string;
+  title?: string;
+  messages: AssistantMessage[];
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
 export interface BusinessPlan {
   id: string;
   year: number;

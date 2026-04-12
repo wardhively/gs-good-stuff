@@ -1,6 +1,6 @@
 import { db } from './firebase';
 import { collection, doc, DocumentData, CollectionReference } from 'firebase/firestore';
-import type { Zone, Variety, Task, JournalEntry, Equipment, Order, WeatherLog, BusinessPlan, Settings, SiteFeature } from './types';
+import type { Zone, Variety, Task, JournalEntry, Equipment, Order, WeatherLog, BusinessPlan, Settings, SiteFeature, AssistantConversation } from './types';
 
 // Generic data type converter to ensure type safety going in/out of Firestore
 const createCollection = <T = DocumentData>(collectionName: string) => {
@@ -17,7 +17,8 @@ export const collections = {
   weatherLog: createCollection<WeatherLog>('weather_log'),
   businessPlan: createCollection<BusinessPlan>('business_plan'),
   settings: createCollection<Settings>('settings'),
-  siteFeatures: createCollection<SiteFeature>('site_features')
+  siteFeatures: createCollection<SiteFeature>('site_features'),
+  assistantConversations: createCollection<AssistantConversation>('assistant_conversations')
 };
 
 // Typed document references
