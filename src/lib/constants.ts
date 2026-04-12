@@ -79,6 +79,8 @@ export const SITE_FEATURE_TYPES: Record<string, { label: string; geometry: 'poly
   well: { label: 'Well Point', geometry: 'point', color: '#3E7A8C', icon: 'Droplet' },
   hazard: { label: 'Hazard', geometry: 'point', color: '#B94A42', icon: 'AlertTriangle' },
   steep_grade: { label: 'Steep Grade', geometry: 'polygon', color: '#CB9B2D', icon: 'TrendingUp' },
+  brush: { label: 'Brush', geometry: 'polygon', color: '#5B7C4F', icon: 'Shrub' },
+  trees: { label: 'Trees', geometry: 'polygon', color: '#3D5933', icon: 'TreePine' },
   custom: { label: 'Custom', geometry: 'polygon', color: '#C17F4E', icon: 'MapPin' },
 };
 

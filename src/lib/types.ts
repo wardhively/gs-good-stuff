@@ -158,7 +158,7 @@ export interface WeatherLog {
   frost_alert: boolean;
 }
 
-export type SiteFeatureType = 'walkway' | 'irrigation' | 'driveway' | 'fence' | 'building' | 'wet_area' | 'well' | 'hazard' | 'steep_grade' | 'custom';
+export type SiteFeatureType = 'walkway' | 'irrigation' | 'driveway' | 'fence' | 'building' | 'wet_area' | 'well' | 'hazard' | 'steep_grade' | 'brush' | 'trees' | 'custom';
 export type SiteGeometryType = 'polygon' | 'line' | 'point';
 
 export interface SiteFeature {

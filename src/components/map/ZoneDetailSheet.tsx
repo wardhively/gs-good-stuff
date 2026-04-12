@@ -11,6 +11,7 @@ import { get } from 'idb-keyval';
 import Checklist from '@/components/admin/Checklist';
 import { ZONE_CHECKLIST_DEFAULTS } from '@/lib/constants';
 import type { ChecklistItem } from '@/lib/types';
+import { polygonAreaSqFt, polygonPerimeterFt, formatArea, formatFeet } from '@/lib/geometry-utils';
 
 interface ZoneDetailSheetProps {
   zone: Zone;
@@ -83,6 +84,26 @@ export default function ZoneDetailSheet({ zone, onClose, onEdit }: ZoneDetailShe
             <p className="text-[10px] uppercase text-stone-c tracking-wider font-bold mb-1">Elevation</p>
             <p className="text-lg font-bold text-root">{zone.elevation ? `${zone.elevation} ft` : 'N/A'}</p>
           </div>
+          {(() => {
+            let geo: any = zone.geometry;
+            if (typeof geo === 'string') try { geo = JSON.parse(geo); } catch { return null; }
+            if (!geo?.coordinates?.[0]) return null;
+            const ring = geo.coordinates[0] as [number, number][];
+            const area = polygonAreaSqFt(ring);
+            const perim = polygonPerimeterFt(ring);
+            return (
+              <>
+                <div className="bg-clay p-3 rounded-lg border border-fence-lt">
+                  <p className="text-[10px] uppercase text-stone-c tracking-wider font-bold mb-1">Area</p>
+                  <p className="text-sm font-bold text-root">{formatArea(area)}</p>
+                </div>
+                <div className="bg-clay p-3 rounded-lg border border-fence-lt">
+                  <p className="text-[10px] uppercase text-stone-c tracking-wider font-bold mb-1">Perimeter</p>
+                  <p className="text-sm font-bold text-root">{formatFeet(perim)}</p>
+                </div>
+              </>
+            );
+          })()}
           <div className="bg-clay p-3 rounded-lg border border-fence-lt">
             <p className="text-[10px] uppercase text-stone-c tracking-wider font-bold mb-1">Drainage</p>
             <p className="text-sm font-bold text-root capitalize">{zone.drainage || 'Unknown'}</p>
