@@ -1,13 +1,80 @@
 /**
  * Tool definitions and executors for Borden AI assistant.
- * Runs server-side via firebase-admin.
+ * Uses Firestore REST API to avoid admin SDK credential issues.
  */
 
-import { adminDb } from './firebase-admin';
-import * as admin from 'firebase-admin';
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'gs-good-stuff';
+const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
-const Timestamp = admin.firestore.Timestamp;
-const FieldValue = admin.firestore.FieldValue;
+// ─── Firestore REST helpers ───────────────────────────────────────
+
+async function createDoc(collection: string, data: Record<string, any>): Promise<string> {
+  const res = await fetch(`${FIRESTORE_BASE}/${collection}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: toFields(data) }),
+  });
+  if (!res.ok) throw new Error(`Firestore create failed: ${await res.text()}`);
+  const doc = await res.json();
+  return doc.name.split('/').pop();
+}
+
+async function updateDoc(collection: string, docId: string, data: Record<string, any>): Promise<void> {
+  const fieldPaths = Object.keys(data).map(k => `updateMask.fieldPaths=${k}`).join('&');
+  const res = await fetch(`${FIRESTORE_BASE}/${collection}/${docId}?${fieldPaths}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: toFields(data) }),
+  });
+  if (!res.ok) throw new Error(`Firestore update failed: ${await res.text()}`);
+}
+
+async function getDoc(collection: string, docId: string): Promise<any> {
+  const res = await fetch(`${FIRESTORE_BASE}/${collection}/${docId}`);
+  if (!res.ok) return null;
+  const doc = await res.json();
+  const parsed: any = { id: doc.name.split('/').pop() };
+  for (const [k, v] of Object.entries(doc.fields || {})) {
+    parsed[k] = fromField(v as any);
+  }
+  return parsed;
+}
+
+function toFields(obj: Record<string, any>): Record<string, any> {
+  const fields: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === undefined) continue;
+    fields[k] = toValue(v);
+  }
+  return fields;
+}
+
+function toValue(v: any): any {
+  if (v === null) return { nullValue: null };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === 'string') return { stringValue: v };
+  if (v instanceof Date) return { timestampValue: v.toISOString() };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(toValue) } };
+  if (typeof v === 'object') return { mapValue: { fields: toFields(v) } };
+  return { stringValue: String(v) };
+}
+
+function fromField(v: any): any {
+  if (v.stringValue !== undefined) return v.stringValue;
+  if (v.integerValue !== undefined) return parseInt(v.integerValue);
+  if (v.doubleValue !== undefined) return v.doubleValue;
+  if (v.booleanValue !== undefined) return v.booleanValue;
+  if (v.timestampValue !== undefined) return v.timestampValue;
+  if (v.nullValue !== undefined) return null;
+  if (v.arrayValue) return (v.arrayValue.values || []).map(fromField);
+  if (v.mapValue) {
+    const obj: any = {};
+    for (const [k, val] of Object.entries(v.mapValue.fields || {})) obj[k] = fromField(val as any);
+    return obj;
+  }
+  return null;
+}
 
 // ─── Tool Definitions (for Claude API) ────────────────────────────
 
@@ -72,7 +139,7 @@ export const BORDEN_TOOLS = [
   },
   {
     name: "update_variety_count",
-    description: "Update the count (quantity) of a variety. Use when tubers are added, divided, or damaged.",
+    description: "Update the count (quantity) of a variety.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -86,11 +153,7 @@ export const BORDEN_TOOLS = [
   {
     name: "get_weather_forecast",
     description: "Get current weather and 7-day forecast for the farm.",
-    input_schema: {
-      type: "object" as const,
-      properties: {},
-      required: [],
-    },
+    input_schema: { type: "object" as const, properties: {}, required: [] },
   },
 ];
 
@@ -100,69 +163,52 @@ export async function executeTool(name: string, input: any): Promise<string> {
   try {
     switch (name) {
       case "create_task": {
-        const ref = adminDb.collection('tasks').doc();
         const data: any = {
-          id: ref.id,
           title: input.title,
           description: input.description,
           source: 'ai',
           priority: input.priority || 'medium',
           status: 'pending',
           assigned_to: input.assigned_to || 'Gary',
-          created_at: Timestamp.now(),
-          updated_at: Timestamp.now(),
+          created_at: new Date(),
+          updated_at: new Date(),
         };
-        if (input.due_date) data.due_date = Timestamp.fromDate(new Date(input.due_date));
+        if (input.due_date) data.due_date = new Date(input.due_date);
         if (input.zone_id) data.zone_id = input.zone_id;
-        await ref.set(data);
+        const id = await createDoc('tasks', data);
         return `Created task: "${input.title}" (${input.priority} priority${input.due_date ? `, due ${input.due_date}` : ''})`;
       }
 
       case "update_variety_status": {
-        const vRef = adminDb.collection('varieties').doc(input.variety_id);
-        const vSnap = await vRef.get();
-        if (!vSnap.exists) return `Error: Variety ${input.variety_id} not found`;
-        const vData = vSnap.data()!;
-        const update: any = {
-          status: input.new_status,
-          updated_at: Timestamp.now(),
-          status_history: [...(vData.status_history || []), {
-            status: input.new_status,
-            timestamp: Timestamp.now(),
-            note: input.note || `Updated by Borden`,
-          }],
-        };
+        const v = await getDoc('varieties', input.variety_id);
+        if (!v) return `Error: Variety ${input.variety_id} not found`;
+        const history = v.status_history || [];
+        history.push({ status: input.new_status, timestamp: new Date(), note: input.note || 'Updated by Borden' });
+        const update: any = { status: input.new_status, updated_at: new Date(), status_history: history };
         if (input.new_status === 'planted') {
-          update.planted_date = Timestamp.now();
-          const dig = new Date();
-          dig.setDate(dig.getDate() + 140);
-          update.expected_dig_date = Timestamp.fromDate(dig);
+          update.planted_date = new Date();
+          const dig = new Date(); dig.setDate(dig.getDate() + 140);
+          update.expected_dig_date = dig;
         }
-        await vRef.update(update);
-        return `Updated "${vData.name}" status to ${input.new_status}${input.note ? `: ${input.note}` : ''}`;
+        await updateDoc('varieties', input.variety_id, update);
+        return `Updated "${v.name}" status to ${input.new_status}`;
       }
 
       case "add_checklist_item": {
         const collection = input.parent_type === 'zone' ? 'zones'
           : input.parent_type === 'variety' ? 'varieties' : 'equipment';
-        const docRef = adminDb.collection(collection).doc(input.parent_id);
-        const docSnap = await docRef.get();
-        if (!docSnap.exists) return `Error: ${input.parent_type} ${input.parent_id} not found`;
-        const existing = docSnap.data()!.checklist || [];
-        const newItem: any = {
-          id: `borden-${Date.now()}`,
-          label: input.label,
-          completed: false,
-        };
+        const doc = await getDoc(collection, input.parent_id);
+        if (!doc) return `Error: ${input.parent_type} ${input.parent_id} not found`;
+        const existing = doc.checklist || [];
+        const newItem: any = { id: `borden-${Date.now()}`, label: input.label, completed: false };
         if (input.due_date) newItem.due_date = input.due_date;
-        await docRef.update({ checklist: [...existing, newItem], updated_at: Timestamp.now() });
-        return `Added checklist item "${input.label}" to ${input.parent_type} ${docSnap.data()!.name || input.parent_id}`;
+        existing.push(newItem);
+        await updateDoc(collection, input.parent_id, { checklist: existing, updated_at: new Date() });
+        return `Added checklist item "${input.label}" to ${doc.name || input.parent_id}`;
       }
 
       case "create_journal_entry": {
-        const ref = adminDb.collection('journal_entries').doc();
-        await ref.set({
-          id: ref.id,
+        const data: any = {
           title: input.title,
           body: input.body,
           category: input.category,
@@ -170,22 +216,21 @@ export async function executeTool(name: string, input: any): Promise<string> {
           is_public: input.is_public || false,
           photo_urls: [],
           variety_ids: [],
-          ...(input.zone_id ? { zone_id: input.zone_id } : {}),
-          created_at: Timestamp.now(),
-          updated_at: Timestamp.now(),
-        });
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        if (input.zone_id) data.zone_id = input.zone_id;
+        await createDoc('journal_entries', data);
         return `Created journal entry: "${input.title}"`;
       }
 
       case "update_variety_count": {
-        const vRef = adminDb.collection('varieties').doc(input.variety_id);
-        const vSnap = await vRef.get();
-        if (!vSnap.exists) return `Error: Variety ${input.variety_id} not found`;
-        const name = vSnap.data()!.name;
-        const update: any = { count: input.new_count, updated_at: Timestamp.now() };
+        const v = await getDoc('varieties', input.variety_id);
+        if (!v) return `Error: Variety ${input.variety_id} not found`;
+        const update: any = { count: input.new_count, updated_at: new Date() };
         if (input.new_count <= 0) update.status = 'sold';
-        await vRef.update(update);
-        return `Updated "${name}" count to ${input.new_count}${input.reason ? ` (${input.reason})` : ''}`;
+        await updateDoc('varieties', input.variety_id, update);
+        return `Updated "${v.name}" count to ${input.new_count}${input.reason ? ` (${input.reason})` : ''}`;
       }
 
       case "get_weather_forecast": {
@@ -194,11 +239,9 @@ export async function executeTool(name: string, input: any): Promise<string> {
         );
         if (!res.ok) return 'Weather fetch failed';
         const data = await res.json();
-        const current = data.current;
-        const daily = data.daily;
-        let forecast = `Current: ${Math.round(current.temperature_2m)}°F\n`;
-        for (let i = 0; i < Math.min(7, daily.time.length); i++) {
-          forecast += `${daily.time[i]}: H ${Math.round(daily.temperature_2m_max[i])}° L ${Math.round(daily.temperature_2m_min[i])}° Precip ${daily.precipitation_sum[i]}"\n`;
+        let forecast = `Current: ${Math.round(data.current.temperature_2m)}°F\n`;
+        for (let i = 0; i < Math.min(7, data.daily.time.length); i++) {
+          forecast += `${data.daily.time[i]}: H ${Math.round(data.daily.temperature_2m_max[i])}° L ${Math.round(data.daily.temperature_2m_min[i])}° Precip ${data.daily.precipitation_sum[i]}"\n`;
         }
         return forecast;
       }
