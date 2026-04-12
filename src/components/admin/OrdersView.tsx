@@ -192,28 +192,62 @@ export default function OrdersView() {
                   <div className="border-t border-fence-lt bg-linen p-4 md:p-6 animate-in fade-in slide-in-from-top-2">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                         
-                        {/* Customer Info */}
+                        {/* Customer & Delivery Info */}
                         <div className="space-y-4">
                            <div>
                               <h4 className="text-[10px] uppercase font-bold text-stone-c tracking-widest flex items-center gap-1 mb-2"><User className="w-3 h-3"/> Customer</h4>
                               <p className="font-bold text-root">{order.customer_name}</p>
                               {order.customer_email && <p className="text-sm text-stone-c">{order.customer_email}</p>}
-                              {order.source && <p className="text-[10px] uppercase font-bold text-creek mt-1">{order.source}</p>}
+                              {(order as any).customer_phone && <p className="text-sm text-stone-c">{(order as any).customer_phone}</p>}
+                              <div className="flex gap-2 mt-1 flex-wrap">
+                                {order.source && <span className="text-[10px] uppercase font-bold text-creek bg-creek-lt px-2 py-0.5 rounded-full">{order.source}</span>}
+                                {(order as any).delivery_method && <span className="text-[10px] uppercase font-bold text-petal bg-petal-lt px-2 py-0.5 rounded-full">{(order as any).delivery_method.replace('_', ' ')}</span>}
+                                {(order as any).is_business && <span className="text-[10px] uppercase font-bold text-soil bg-clay px-2 py-0.5 rounded-full">Business</span>}
+                                {(order as any).occasion && <span className="text-[10px] uppercase font-bold text-bloom bg-bloom-lt px-2 py-0.5 rounded-full">{(order as any).occasion}</span>}
+                              </div>
                            </div>
+
+                           {(order as any).business_name && (
+                             <div>
+                               <h4 className="text-[10px] uppercase font-bold text-stone-c tracking-widest mb-1">Business</h4>
+                               <p className="font-bold text-root">{(order as any).business_name}</p>
+                             </div>
+                           )}
 
                            {order.shipping_address && (
                            <div>
-                              <h4 className="text-[10px] uppercase font-bold text-stone-c tracking-widest flex items-center gap-1 mb-2"><Package className="w-3 h-3"/> Shipping Address</h4>
+                              <h4 className="text-[10px] uppercase font-bold text-stone-c tracking-widest flex items-center gap-1 mb-2"><Package className="w-3 h-3"/> Delivery Address</h4>
                               <p className="font-bold text-root">{order.shipping_address.line1}</p>
-                              {order.shipping_address.line2 && <p className="font-bold text-root">{order.shipping_address.line2}</p>}
-                              <p className="font-bold text-root">{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</p>
+                              {order.shipping_address.line2 && <p className="text-root">{order.shipping_address.line2}</p>}
+                              <p className="text-root">{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</p>
                            </div>
                            )}
 
+                           {(order as any).delivery_notes && (
+                             <div className="bg-bloom-lt/50 rounded-lg p-3">
+                               <h4 className="text-[10px] uppercase font-bold text-bloom tracking-widest mb-1">Delivery Notes</h4>
+                               <p className="text-sm text-root">{(order as any).delivery_notes}</p>
+                             </div>
+                           )}
+
+                           {(order as any).card_message && (
+                             <div className="bg-petal-lt/50 rounded-lg p-3">
+                               <h4 className="text-[10px] uppercase font-bold text-petal tracking-widest mb-1">Card Message</h4>
+                               <p className="text-sm text-root italic">"{(order as any).card_message}"</p>
+                             </div>
+                           )}
+
                            {order.tracking_number && (
-                              <div className="bg-white p-3 rounded-lg border border-fence inline-block">
+                              <div className="bg-white p-3 rounded-lg border border-fence">
                                  <p className="text-[10px] uppercase font-bold text-creek tracking-widest mb-1">Tracking Number</p>
                                  <p className="font-bold text-root">{order.tracking_number}</p>
+                              </div>
+                           )}
+
+                           {order.tax != null && order.tax > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-stone-c">Tax</span>
+                                <span className="font-bold text-root">${order.tax.toFixed(2)}</span>
                               </div>
                            )}
                         </div>

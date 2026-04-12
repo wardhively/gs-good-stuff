@@ -54,25 +54,38 @@ export async function POST(req: Request) {
             }
          });
 
-         // Create the explicit Order Doc tracking bounds accurately 
+         // Create the explicit Order Doc with full delivery info
+         const meta = session.metadata || {};
+         const customFields = (session as any).custom_fields || [];
+         const cardMessage = customFields.find((f: any) => f.key === 'card_message')?.text?.value || '';
+
          const orderRef = adminDb.collection("orders").doc();
          t.set(orderRef, {
             stripe_session_id: session.id,
+            source: 'online',
             customer_name: session.customer_details?.name || 'Unknown',
-            customer_email: session.customer_details?.email || 'Unknown',
-            shipping_address: {
-               line1: addr?.line1 || '',
-               line2: addr?.line2 || '',
-               city: addr?.city || '',
-               state: addr?.state || '',
-               zip: addr?.postal_code || '',
-               country: addr?.country || 'US'
-            },
+            customer_email: session.customer_details?.email || '',
+            customer_phone: (session as any).customer_details?.phone || session.customer_details?.phone || '',
+            shipping_address: addr ? {
+               line1: addr.line1 || '',
+               line2: addr.line2 || '',
+               city: addr.city || '',
+               state: addr.state || '',
+               zip: addr.postal_code || '',
+               country: addr.country || 'US',
+            } : null,
+            delivery_method: meta.delivery_method || 'ship',
+            delivery_notes: meta.delivery_notes || '',
+            card_message: cardMessage,
+            is_business: meta.is_business === 'true',
+            business_name: meta.business_name || '',
+            occasion: meta.occasion || '',
             items: itemsParsed.map((i: any) => ({
               variety_id: i.id, name: i.n, quantity: i.q, unit_price: i.p
             })),
             subtotal: session.amount_subtotal ? session.amount_subtotal / 100 : 0,
             shipping_cost: session.total_details?.amount_shipping ? session.total_details.amount_shipping / 100 : 0,
+            tax: session.total_details?.amount_tax ? session.total_details.amount_tax / 100 : 0,
             total: session.amount_total ? session.amount_total / 100 : 0,
             status: 'pending',
             created_at: admin.firestore.FieldValue.serverTimestamp()

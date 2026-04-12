@@ -132,12 +132,20 @@ export interface Order {
   source: 'online' | 'manual' | 'market' | 'wholesale';
   customer_name: string;
   customer_email?: string;
+  customer_phone?: string;
   shipping_address?: {
     line1: string; line2?: string; city: string; state: string; zip: string; country: string;
   };
+  delivery_method?: 'ship' | 'local_delivery' | 'pickup';
+  delivery_notes?: string;
+  card_message?: string;
+  is_business?: boolean;
+  business_name?: string;
+  occasion?: string;
   items: OrderItem[];
   subtotal: number;
   shipping_cost: number;
+  tax?: number;
   discount?: number;
   total: number;
   status: 'pending' | 'packing' | 'shipped' | 'fulfilled' | 'refunded';

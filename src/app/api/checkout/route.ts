@@ -39,6 +39,8 @@ export async function POST(req: Request) {
       }
     ];
 
+    const { delivery_method, delivery_notes, is_business, business_name, occasion } = body;
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
@@ -48,9 +50,23 @@ export async function POST(req: Request) {
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cart?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cart?canceled=true`,
       metadata: {
-        raw_items: JSON.stringify(items.map((i: any) => ({ id: i.variety_id, q: i.quantity, n: i.name, p: i.unit_price })))
+        raw_items: JSON.stringify(items.map((i: any) => ({ id: i.variety_id, q: i.quantity, n: i.name, p: i.unit_price }))),
+        delivery_method: delivery_method || 'ship',
+        delivery_notes: delivery_notes || '',
+        is_business: is_business ? 'true' : 'false',
+        business_name: business_name || '',
+        occasion: occasion || '',
       },
-      shipping_address_collection: { allowed_countries: ['US'] }
+      shipping_address_collection: { allowed_countries: ['US'] },
+      phone_number_collection: { enabled: true },
+      custom_fields: [
+        {
+          key: 'card_message',
+          label: { type: 'custom', custom: 'Card message (optional)' },
+          type: 'text',
+          optional: true,
+        },
+      ],
     });
 
     return NextResponse.json({ url: session.url });
