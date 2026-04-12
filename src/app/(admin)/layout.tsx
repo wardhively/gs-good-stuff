@@ -5,9 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Map, Box, CheckSquare, BookOpen, MoreHorizontal, Wifi, WifiOff, CloudSnow, Sparkles } from "lucide-react";
 import ScriptureOfDay from "@/components/admin/ScriptureOfDay";
+import NotificationBanner from "@/components/admin/NotificationBanner";
+import { ToastProvider, useToast } from "@/components/admin/Toast";
 import Link from "next/link";
 import { waitForPendingWrites } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { onForegroundMessage } from "@/lib/messaging";
 
 function SyncIndicator() {
   const [isOnline, setIsOnline] = useState(true);
@@ -80,9 +83,11 @@ export default function AdminLayout({
   ];
 
   return (
+    <ToastProvider>
     <div className="flex flex-col min-h-screen bg-cream">
       <SyncIndicator />
-      
+      <NotificationBanner />
+
       {/* Scripture of the Day */}
       <ScriptureOfDay />
 
@@ -115,5 +120,6 @@ export default function AdminLayout({
         </ul>
       </nav>
     </div>
+    </ToastProvider>
   );
 }
