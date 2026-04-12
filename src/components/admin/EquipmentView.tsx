@@ -142,6 +142,33 @@ export default function EquipmentView() {
         <h1 className="font-bitter text-3xl font-bold text-root">Fleet Manager</h1>
       </div>
 
+      {/* Total maintenance cost banner */}
+      {equipment.length > 0 && (() => {
+        const totalCost = equipment.reduce((sum, eq) =>
+          sum + (eq.maintenance_log || []).reduce((s, log) => s + (log.cost || 0), 0), 0
+        );
+        const perMachine = equipment.map(eq => ({
+          name: eq.name,
+          cost: (eq.maintenance_log || []).reduce((s, log) => s + (log.cost || 0), 0),
+        })).filter(m => m.cost > 0);
+
+        return totalCost > 0 ? (
+          <div className="mx-4 mt-4 bg-petal-lt rounded-xl border border-petal/20 p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] uppercase text-stone-c tracking-wider font-bold">Total Maintenance Costs</span>
+              <span className="font-bitter text-xl font-bold text-root">${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {perMachine.map(m => (
+                <span key={m.name} className="text-[11px] text-stone-c">
+                  {m.name}: <strong className="text-root">${m.cost.toFixed(2)}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null;
+      })()}
+
       <div className="p-4 flex flex-col gap-4">
         {equipment.length === 0 && (
           <div className="text-center py-12">
