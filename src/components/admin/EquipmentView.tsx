@@ -34,6 +34,11 @@ export default function EquipmentView() {
   const [editMakeModel, setEditMakeModel] = useState("");
   const [editHours, setEditHours] = useState("");
 
+  // Service interval form
+  const [addingServiceTo, setAddingServiceTo] = useState<string | null>(null);
+  const [newSvcType, setNewSvcType] = useState("");
+  const [newSvcInterval, setNewSvcInterval] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoUploadId, setPhotoUploadId] = useState<string | null>(null);
 
@@ -91,6 +96,37 @@ export default function EquipmentView() {
     await saveEquipment(eqId, { photo_url: pendingUrl } as any);
     syncPendingFiles();
     setPhotoUploadId(null);
+  };
+
+  const addServiceItem = async (eqId: string) => {
+    if (!newSvcType.trim() || !newSvcInterval) return;
+    const eq = equipment.find(e => e.id === eqId);
+    if (!eq) return;
+    const updated = [...eq.service_items, {
+      type: newSvcType.trim(),
+      interval_hours: parseFloat(newSvcInterval),
+      last_completed_hours: eq.current_hours,
+    }];
+    await saveEquipment(eqId, { service_items: updated } as any);
+    setAddingServiceTo(null);
+    setNewSvcType("");
+    setNewSvcInterval("");
+  };
+
+  const removeServiceItem = async (eqId: string, index: number) => {
+    const eq = equipment.find(e => e.id === eqId);
+    if (!eq) return;
+    if (!window.confirm(`Remove "${eq.service_items[index].type}" service tracking?`)) return;
+    const updated = eq.service_items.filter((_, i) => i !== index);
+    await saveEquipment(eqId, { service_items: updated } as any);
+  };
+
+  const resetServiceItem = async (eqId: string, index: number) => {
+    const eq = equipment.find(e => e.id === eqId);
+    if (!eq) return;
+    const updated = [...eq.service_items];
+    updated[index] = { ...updated[index], last_completed_hours: eq.current_hours, last_completed_at: Timestamp.now() };
+    await saveEquipment(eqId, { service_items: updated } as any);
   };
 
   if (loading) return <div className="p-8 text-center text-stone-c font-bold animate-pulse">Loading machines...</div>;
@@ -169,6 +205,81 @@ export default function EquipmentView() {
                       presetItems={EQUIPMENT_CHECKLIST_DEFAULTS}
                       onChange={(items: ChecklistItem[]) => saveEquipment(eq.id, { checklist: items } as any)}
                     />
+                  </div>
+
+                  {/* Service Intervals */}
+                  <div>
+                    <h4 className="font-bold text-xs uppercase text-stone-c tracking-widest mb-2">Service Intervals</h4>
+                    {eq.service_items.length === 0 ? (
+                      <p className="text-sm text-ash italic mb-2">No service intervals configured</p>
+                    ) : (
+                      <div className="space-y-2 mb-2">
+                        {eq.service_items.map((svc, i) => {
+                          const elapsed = eq.current_hours - (svc.last_completed_hours || 0);
+                          const pct = Math.min((elapsed / svc.interval_hours) * 100, 100);
+                          return (
+                            <div key={i} className="bg-cream p-3 rounded-lg border border-fence-lt">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-bold text-root">{svc.type}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-stone-c font-bold">Every {svc.interval_hours}h</span>
+                                  <button
+                                    onClick={() => resetServiceItem(eq.id, i)}
+                                    className="text-[10px] font-bold text-creek bg-creek-lt px-2 py-0.5 rounded-full hover:bg-creek hover:text-white transition-colors"
+                                  >
+                                    Reset
+                                  </button>
+                                  <button
+                                    onClick={() => removeServiceItem(eq.id, i)}
+                                    className="text-ash hover:text-frost p-0.5"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="text-[10px] text-stone-c mb-1">{Math.round(elapsed)}h since last service · {pct >= 100 ? 'OVERDUE' : `${Math.round(100 - pct)}% remaining`}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {addingServiceTo === eq.id ? (
+                      <div className="bg-cream p-3 rounded-lg border border-fence-lt space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[9px] uppercase text-stone-c font-bold block mb-0.5">Service Type</label>
+                            <input
+                              value={newSvcType}
+                              onChange={e => setNewSvcType(e.target.value)}
+                              placeholder="Oil Change"
+                              className="w-full px-2 py-1.5 rounded border border-fence bg-linen text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] uppercase text-stone-c font-bold block mb-0.5">Interval (hours)</label>
+                            <input
+                              type="number"
+                              value={newSvcInterval}
+                              onChange={e => setNewSvcInterval(e.target.value)}
+                              placeholder="250"
+                              className="w-full px-2 py-1.5 rounded border border-fence bg-linen text-root text-sm focus:outline-none focus:ring-2 focus:ring-petal"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => setAddingServiceTo(null)} className="flex-1 py-1.5 rounded text-xs font-bold border border-fence text-stone-c">Cancel</button>
+                          <button onClick={() => addServiceItem(eq.id)} disabled={!newSvcType.trim() || !newSvcInterval} className="flex-1 py-1.5 rounded text-xs font-bold bg-soil text-white disabled:opacity-30">Add</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setAddingServiceTo(eq.id)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-creek hover:text-creek-dk transition-colors"
+                      >
+                        <Plus className="w-3 h-3" /> Add Service Interval
+                      </button>
+                    )}
                   </div>
 
                   {/* Photo */}
