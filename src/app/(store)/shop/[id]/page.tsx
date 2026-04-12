@@ -4,12 +4,13 @@ import ProductDetailClient from "@/components/store/ProductDetailClient";
 import { notFound } from "next/navigation";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps) {
   try {
-    const docSnap = await adminDb.collection("varieties").doc(params.id).get();
+    const { id } = await params;
+    const docSnap = await adminDb.collection("varieties").doc(id).get();
     if (!docSnap.exists) return { title: "Variety Not Found" };
     
     const variety = docSnap.data() as Variety;
@@ -26,7 +27,8 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function ProductDetailPage({ params }: PageProps) {
-  const docSnap = await adminDb.collection("varieties").doc(params.id).get();
+  const { id } = await params;
+  const docSnap = await adminDb.collection("varieties").doc(id).get();
   if (!docSnap.exists) {
     notFound();
   }

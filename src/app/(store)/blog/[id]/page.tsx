@@ -9,12 +9,13 @@ import Link from "next/link";
 import Script from "next/script";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps) {
   try {
-    const docSnap = await adminDb.collection("journal_entries").doc(params.id).get();
+    const { id } = await params;
+    const docSnap = await adminDb.collection("journal_entries").doc(id).get();
     if (!docSnap.exists) return { title: "Post Not Found" };
     const post = docSnap.data() as JournalEntry;
     if (!post.is_public) return { title: "Private Post" };
@@ -54,7 +55,8 @@ function NativeShare({ title }: { title: string }) {
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-  const docSnap = await adminDb.collection("journal_entries").doc(params.id).get();
+  const { id } = await params;
+  const docSnap = await adminDb.collection("journal_entries").doc(id).get();
   if (!docSnap.exists) notFound();
 
   const post = docSnap.data() as JournalEntry;
